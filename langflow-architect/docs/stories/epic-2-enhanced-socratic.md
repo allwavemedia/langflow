@@ -4,6 +4,8 @@
 
 This epic builds advanced conversational capabilities using CopilotKit actions, sophisticated question generation through GPT-5 function calling, and intelligent workflow understanding for the standalone application.
 
+**🔄 STATUS: SUPERSEDED BY EPIC 5** - This epic has been superseded by Epic 5: Enhanced Agent Intelligence with Web Search & MCP Integration, which provides comprehensive domain-aware intelligence. The stories below are maintained for reference and gradual migration to the enhanced architecture.
+
 ---
 
 ## Story 2.1: CopilotKit Action-Based Category Framework
