@@ -7,6 +7,10 @@ import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { contextEngine } from "../../../lib/enhanced/contextEngine";
 import { mcpManager } from "../../../lib/enhanced/mcpManager";
+import { docsIngestionService } from "../../../lib/enhanced/docsIngestionService";
+import { langflowSchemaRegistry } from "../../../lib/enhanced/langflowSchemaRegistry";
+import { searchManager } from "../../../lib/enhanced/searchManager";
+import { docsMcpServer } from "../../../lib/enhanced/docsMcpServer";
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented  
 // import { EnhancedCopilotManager } from "../../../lib/enhanced/EnhancedCopilotManager";
 
@@ -231,6 +235,185 @@ const runtime = new CopilotRuntime({
               error: "Enhanced features temporarily unavailable"
             };
           }
+        }
+      }
+    },
+    {
+      name: "enhanced_workflow_analysis",
+      description: "Phase 2: Enhanced workflow analysis with documentation grounding, web search, and schema validation",
+      parameters: [
+        {
+          name: "requirements",
+          type: "string",
+          description: "Detailed workflow requirements",
+          required: true,
+        },
+        {
+          name: "domain",
+          type: "string", 
+          description: "The domain or industry for the workflow",
+          required: true,
+        },
+        {
+          name: "enableWebSearch",
+          type: "boolean",
+          description: "Enable web search for additional context",
+          required: false,
+        },
+        {
+          name: "enableDocGrounding",
+          type: "boolean",
+          description: "Enable Langflow documentation grounding",
+          required: false,
+        },
+      ],
+      handler: async ({ requirements, domain, enableWebSearch, enableDocGrounding }: {
+        requirements: string;
+        domain: string;
+        enableWebSearch?: boolean;
+        enableDocGrounding?: boolean;
+      }) => {
+        try {
+          console.log('Phase 2: Enhanced workflow analysis started');
+          
+          // Step 1: Context Analysis with enhanced intelligence
+          const contextAnalysis = await contextEngine.query({
+            query: `${domain} ${requirements}`,
+            maxResults: 10
+          });
+
+          // Step 2: Documentation Grounding (if enabled)
+          let documentationContext = null;
+          if (enableDocGrounding !== false && process.env.FEATURE_DOCS_GROUNDING === 'true') {
+            try {
+              const docsResponse = await docsMcpServer.handleRequest({
+                method: 'searchDocumentation',
+                params: {
+                  query: `${domain} workflow best practices`,
+                  limit: 5
+                }
+              });
+              
+              if (docsResponse.success) {
+                documentationContext = docsResponse.data;
+              }
+            } catch (error) {
+              console.warn('Documentation grounding failed:', error);
+            }
+          }
+
+          // Step 3: Web Search Integration (if enabled)
+          let webSearchContext = null;
+          if (enableWebSearch && process.env.FEATURE_SEARCH === 'true') {
+            try {
+              const searchResult = await searchManager.search(
+                `${domain} workflow best practices langflow`,
+                {
+                  maxResults: 5,
+                  domainFilter: ['docs.langflow.ai', 'github.com', 'langflow.org'],
+                  timeRange: 'month'
+                }
+              );
+              
+              if (searchResult.results.length > 0) {
+                webSearchContext = {
+                  results: searchResult.results,
+                  sources: searchResult.sources,
+                  attribution: searchResult.attribution
+                };
+              }
+            } catch (error) {
+              console.warn('Web search failed:', error);
+            }
+          }
+
+          // Step 4: Get relevant components from schema registry
+          const availableComponents = langflowSchemaRegistry.getComponentsByCategory(
+            contextAnalysis.domainAnalysis.domain
+          );
+
+          // Step 5: Generate enhanced questions with grounding
+          const contextualQuestions = contextEngine.generateContextualQuestions(contextAnalysis);
+          
+          // Step 6: Build comprehensive response
+          const response = {
+            phase2_analysis: {
+              context_intelligence: {
+                domain: contextAnalysis.domainAnalysis.domain,
+                confidence: contextAnalysis.domainAnalysis.confidence,
+                technology_stack: contextAnalysis.technologyStack.platform,
+                compliance_requirements: contextAnalysis.technologyStack.compliance,
+                specializations: contextAnalysis.specializations
+              },
+              documentation_grounding: documentationContext ? {
+                enabled: true,
+                relevant_docs: documentationContext.results?.length || 0,
+                official_sources: documentationContext.total || 0,
+                grounding_quality: documentationContext.results?.length > 0 ? 'high' : 'low'
+              } : { enabled: false },
+              web_search_enhancement: webSearchContext ? {
+                enabled: true,
+                results_found: webSearchContext.results.length,
+                sources: webSearchContext.sources,
+                attribution: webSearchContext.attribution,
+                search_quality: webSearchContext.results.length > 3 ? 'high' : 'medium'
+              } : { enabled: false },
+              available_components: {
+                total: availableComponents.length,
+                categories: [...new Set(availableComponents.map(c => c.metadata.category))],
+                recommended: availableComponents.slice(0, 5).map(c => ({
+                  id: c.id,
+                  displayName: c.displayName,
+                  description: c.description,
+                  category: c.metadata.category
+                }))
+              }
+            },
+            enhanced_suggestions: {
+              contextual_questions: contextualQuestions,
+              workflow_recommendations: [
+                `Based on ${contextAnalysis.domainAnalysis.domain} domain analysis, consider using ${availableComponents.length > 0 ? availableComponents[0].displayName : 'standard'} components`,
+                `For ${contextAnalysis.technologyStack.platform} integration, implement appropriate connectors`,
+                contextAnalysis.technologyStack.compliance.length > 0 ? 
+                  `Ensure ${contextAnalysis.technologyStack.compliance.join(', ')} compliance requirements are met` : null
+              ].filter(Boolean),
+              compliance_guidance: contextAnalysis.technologyStack.compliance.map(c => 
+                `${c} compliance: Implement appropriate data protection and audit trails`
+              ),
+              architecture_patterns: [
+                contextAnalysis.specializations.includes('real-time') ? 'Real-time processing pattern recommended' : null,
+                contextAnalysis.specializations.includes('api-integration') ? 'API-first architecture pattern' : null,
+                contextAnalysis.specializations.includes('batch-processing') ? 'Batch processing pattern' : null
+              ].filter(Boolean)
+            },
+            grounding_sources: {
+              official_documentation: documentationContext?.results?.length || 0,
+              web_search_results: webSearchContext?.results?.length || 0,
+              schema_components: availableComponents.length,
+              context_confidence: contextAnalysis.domainAnalysis.confidence
+            }
+          };
+
+          console.log('Phase 2: Enhanced workflow analysis completed successfully');
+          return response;
+
+        } catch (error) {
+          console.error('Phase 2: Enhanced workflow analysis error:', error);
+          
+          // Fallback to Phase 1 analysis
+          return {
+            phase2_analysis: {
+              error: 'Enhanced features temporarily unavailable',
+              fallback_mode: true
+            },
+            basic_analysis: `Analyzing ${domain} workflow requirements: ${requirements}`,
+            suggested_questions: [
+              `What specific ${domain} challenges are you trying to solve?`,
+              "What are your primary integration requirements?",
+              "What compliance considerations do you have?"
+            ],
+            next_steps: "Let's start with basic workflow structure and enhance it step by step."
+          };
         }
       }
     },
@@ -558,86 +741,111 @@ const runtime = new CopilotRuntime({
         workflow_description: string;
         components: string;
       }) => {
-        // Generate a basic Langflow JSON structure
-        const langflowTemplate = {
-          data: {
-            nodes: [
-              {
-                id: "input-1",
-                type: "ChatInput",
-                position: { x: 100, y: 200 },
-                data: {
+        try {
+          // Generate a basic Langflow JSON structure
+          const langflowTemplate = {
+            data: {
+              nodes: [
+                {
+                  id: "input-1",
                   type: "ChatInput",
-                  node: {
-                    template: {
-                      input_value: {
-                        display_name: "Text",
-                        type: "str",
-                        value: "User input will be processed here"
+                  position: { x: 100, y: 200 },
+                  data: {
+                    type: "ChatInput",
+                    node: {
+                      template: {
+                        input_value: {
+                          display_name: "Text",
+                          type: "str",
+                          value: "User input will be processed here"
+                        }
                       }
                     }
                   }
-                }
-              },
-              {
-                id: "llm-1", 
-                type: "OpenAIModel",
-                position: { x: 400, y: 200 },
-                data: {
+                },
+                {
+                  id: "llm-1", 
                   type: "OpenAIModel",
-                  node: {
-                    template: {
-                      model_name: {
-                        value: "gpt-3.5-turbo"
-                      },
-                      input_value: {
-                        display_name: "Input",
-                        type: "str"
+                  position: { x: 400, y: 200 },
+                  data: {
+                    type: "OpenAIModel",
+                    node: {
+                      template: {
+                        model_name: {
+                          value: "gpt-3.5-turbo"
+                        },
+                        input_value: {
+                          display_name: "Input",
+                          type: "str"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  id: "output-1",
+                  type: "ChatOutput", 
+                  position: { x: 700, y: 200 },
+                  data: {
+                    type: "ChatOutput",
+                    node: {
+                      template: {
+                        input_value: {
+                          display_name: "Text",
+                          type: "str"
+                        }
                       }
                     }
                   }
                 }
-              },
-              {
-                id: "output-1",
-                type: "ChatOutput", 
-                position: { x: 700, y: 200 },
-                data: {
-                  type: "ChatOutput",
-                  node: {
-                    template: {
-                      input_value: {
-                        display_name: "Text",
-                        type: "str"
-                      }
-                    }
-                  }
+              ],
+              edges: [
+                {
+                  id: "edge-1",
+                  source: "input-1",
+                  target: "llm-1"
+                },
+                {
+                  id: "edge-2", 
+                  source: "llm-1",
+                  target: "output-1"
                 }
-              }
-            ],
-            edges: [
-              {
-                id: "edge-1",
-                source: "input-1",
-                target: "llm-1"
-              },
-              {
-                id: "edge-2", 
-                source: "llm-1",
-                target: "output-1"
-              }
-            ]
-          },
-          description: workflow_description,
-          name: "Generated Workflow"
-        };
+              ]
+            },
+            description: workflow_description,
+            name: "Generated Workflow"
+          };
 
-        return {
-          langflow_json: langflowTemplate,
-          description: "Generated Langflow workflow based on your requirements",
-          components_used: components,
-          next_steps: "You can now download this JSON file and import it into Langflow for further customization."
-        };
+          // Phase 2: Validate the generated workflow against schemas
+          let validationResult = null;
+          try {
+            validationResult = langflowSchemaRegistry.validateWorkflow(langflowTemplate);
+          } catch (error) {
+            console.warn('Schema validation failed:', error);
+          }
+
+          return {
+            langflow_json: langflowTemplate,
+            description: "Generated Langflow workflow based on your requirements",
+            components_used: components,
+            phase2_validation: validationResult ? {
+              valid: validationResult.valid,
+              errors: validationResult.errors,
+              warnings: validationResult.warnings,
+              schema_version: validationResult.schemaVersion
+            } : null,
+            next_steps: validationResult?.valid 
+              ? "Workflow validates successfully! You can download this JSON file and import it into Langflow."
+              : "You can download this JSON file and import it into Langflow for further customization. Note: Some validation warnings may need attention."
+          };
+        } catch (error) {
+          console.error('Workflow generation error:', error);
+          return {
+            error: "Failed to generate workflow",
+            message: error instanceof Error ? error.message : "Unknown error",
+            fallback: "Please try again with simpler requirements"
+          };
+        }
       }
     },
     {

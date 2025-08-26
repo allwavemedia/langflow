@@ -19,6 +19,7 @@
     "@copilotkit/react-ui": "^1.10.2",
     "@copilotkit/runtime": "^1.10.2",
     "@copilotkit/shared": "^1.10.2",
+    "ajv": "^8.17.1",
     "crypto": "^1.0.1",
     "next": "15.5.0",
     "react": "19.1.0",
