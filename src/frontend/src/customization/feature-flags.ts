@@ -19,3 +19,7 @@ export const ENABLE_KNOWLEDGE_BASES = false;
 
 export const ENABLE_MCP_COMPOSER =
   process.env.LANGFLOW_FEATURE_MCP_COMPOSER === "true";
+
+// Phase 2 Feature Flags - Epic 6 Enhanced Intelligence
+export const ENABLE_SEARCH = process.env.LANGFLOW_FEATURE_SEARCH === "true";
+export const ENABLE_DOCS_GROUNDING = process.env.LANGFLOW_FEATURE_DOCS_GROUNDING === "true";
