@@ -19,7 +19,7 @@ const customJestConfig = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: 30000,
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/__tests__/(.*)$': '<rootDir>/__tests__/$1',
   },
