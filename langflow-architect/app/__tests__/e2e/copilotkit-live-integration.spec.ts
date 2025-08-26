@@ -371,7 +371,7 @@ test.describe('Socratic Langflow Architect - Live CopilotKit Integration', () =>
             document.dispatchEvent(event)
             return { success: true, method: 'custom_event' }
           } catch (error) {
-            return { success: false, error: error.message }
+            return { success: false, error: error instanceof Error ? error.message : String(error) }
           }
         })
         
@@ -448,7 +448,7 @@ test.describe('Socratic Langflow Architect - Live CopilotKit Integration', () =>
             } catch (error) {
               return {
                 valid: false,
-                error: error.message,
+                error: error instanceof Error ? error.message : String(error),
                 text: text.substring(0, 100)
               }
             }

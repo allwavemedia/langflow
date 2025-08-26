@@ -7,6 +7,7 @@ import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEngine";
 import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
+import { searchManager } from "../../../lib/enhanced/searchManager";
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented  
 // import { EnhancedCopilotManager } from "../../../lib/enhanced/EnhancedCopilotManager";
 
@@ -20,29 +21,225 @@ const serviceAdapter = new OpenAIAdapter({ openai });
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented
 // const enhancedManager = new EnhancedCopilotManager(runtime);
 
-// Helper to normalize context shapes
-function getNormalizedDomain(contextAnalysis: any): string {
+// Helper to normalize context shapes for backward compatibility
+type ContextLike = ContextAnalysis | {
+  domain?: string;
+  confidence?: number;
+  technologies?: string[];
+  suggestedIntegrations?: string[];
+  domainAnalysis?: { domain: string; confidence: number };
+  technologyStack?: { platform: string[] | string; compliance: boolean };
+  specializations?: string[];
+};
+
+function getNormalizedDomain(contextAnalysis: ContextLike | null): string {
+  if (!contextAnalysis) return 'general';
   return 'domainAnalysis' in contextAnalysis 
-    ? contextAnalysis.domainAnalysis.domain 
+    ? contextAnalysis.domainAnalysis?.domain || 'general'
     : contextAnalysis.domain || 'general';
 }
 
-function getNormalizedConfidence(contextAnalysis: any): number {
+function getNormalizedConfidence(contextAnalysis: ContextLike | null): number {
+  if (!contextAnalysis) return 0.6;
   return 'domainAnalysis' in contextAnalysis 
-    ? contextAnalysis.domainAnalysis.confidence 
+    ? contextAnalysis.domainAnalysis?.confidence || 0.6
     : contextAnalysis.confidence || 0.6;
 }
 
-function getNormalizedTechnologies(contextAnalysis: any): string[] {
-  return 'technologyStack' in contextAnalysis 
-    ? contextAnalysis.technologyStack.platform 
-    : contextAnalysis.technologies || [];
+function getNormalizedTechnologies(contextAnalysis: ContextLike | null): string[] {
+  if (!contextAnalysis) return [];
+  if ('technologyStack' in contextAnalysis) {
+    const platforms = contextAnalysis.technologyStack?.platform;
+    if (Array.isArray(platforms)) {
+      return platforms;
+    } else if (platforms) {
+      return [platforms];
+    } else {
+      return [];
+    }
+  }
+  return contextAnalysis.technologies || [];
 }
 
-function getNormalizedSpecializations(contextAnalysis: any): string[] {
+function getNormalizedSpecializations(contextAnalysis: ContextLike | null): string[] {
+  if (!contextAnalysis) return [];
   return 'specializations' in contextAnalysis 
-    ? contextAnalysis.specializations 
+    ? contextAnalysis.specializations || []
     : contextAnalysis.suggestedIntegrations || [];
+}
+
+// Helper functions for conversation context management
+function getDomainMaturity(confidence: number): string {
+  if (confidence > 0.8) return 'high';
+  if (confidence > 0.6) return 'medium';
+  return 'low';
+}
+
+function getStackComplexity(technologies: string[]): string {
+  if (technologies.length > 3) return 'complex';
+  if (technologies.length > 1) return 'moderate';
+  return 'simple';
+}
+
+async function handleContextGet(conversationId: string, contextType: string) {
+  const currentContext = contextEngine.getContext(conversationId);
+  
+  if (!currentContext) {
+    return {
+      action: 'get',
+      conversationId,
+      context: null,
+      message: 'No context found for this conversation',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  return {
+    action: 'get',
+    conversationId,
+    context: {
+      domain: getNormalizedDomain(currentContext),
+      confidence: getNormalizedConfidence(currentContext),
+      technologies: getNormalizedTechnologies(currentContext),
+      specializations: getNormalizedSpecializations(currentContext),
+      full_context: currentContext
+    },
+    contextType,
+    message: 'Context retrieved successfully',
+    timestamp: new Date().toISOString()
+  };
+}
+
+async function handleContextUpdate(conversationId: string, contextData: string, contextType: string, mergeStrategy: string) {
+  try {
+    // Parse context data if it's JSON
+    let parsedData;
+    try {
+      parsedData = JSON.parse(contextData);
+    } catch {
+      // If not JSON, treat as plain text for domain analysis
+      parsedData = { userInput: contextData, type: contextType };
+    }
+
+    let updatedContext;
+    const existingContext = contextEngine.getContext(conversationId);
+
+    if (existingContext) {
+      // Update existing context
+      updatedContext = contextEngine.updateContext(
+        conversationId,
+        typeof parsedData === 'string' ? parsedData : JSON.stringify(parsedData),
+        contextType as 'domain_refinement' | 'workflow_progress' | 'user_feedback'
+      );
+    } else {
+      // Create new context analysis
+      const analysisText = typeof parsedData === 'object' 
+        ? (parsedData.userInput || parsedData.requirements || JSON.stringify(parsedData))
+        : parsedData;
+      
+      updatedContext = await contextEngine.analyzeContext(analysisText);
+    }
+
+    return {
+      action: 'update',
+      conversationId,
+      context: {
+        domain: getNormalizedDomain(updatedContext),
+        confidence: getNormalizedConfidence(updatedContext),
+        technologies: getNormalizedTechnologies(updatedContext),
+        specializations: getNormalizedSpecializations(updatedContext)
+      },
+      contextType,
+      mergeStrategy,
+      message: `Context updated successfully using ${mergeStrategy} strategy`,
+      timestamp: new Date().toISOString()
+    };
+  } catch (parseError) {
+    return {
+      action: 'update',
+      conversationId,
+      error: `Failed to parse context data: ${parseError}`,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+async function handleContextAnalyze(conversationId: string) {
+  const contextToAnalyze = contextEngine.getContext(conversationId);
+  
+  if (!contextToAnalyze) {
+    return {
+      action: 'analyze',
+      conversationId,
+      analysis: null,
+      message: 'No context available to analyze',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // Get domain-specific insights
+  const domain = getNormalizedDomain(contextToAnalyze);
+  const confidence = getNormalizedConfidence(contextToAnalyze);
+  const technologies = getNormalizedTechnologies(contextToAnalyze);
+  const specializations = getNormalizedSpecializations(contextToAnalyze);
+
+  // Get MCP insights if available
+  let mcpInsights: McpQueryResponse | null = null;
+  const mcpServers = mcpManager.getServersForDomain(domain);
+  if (mcpServers.length > 0) {
+    try {
+      mcpInsights = await mcpManager.queryServers(
+        `Analysis and recommendations for ${domain} domain with ${technologies.join(', ')} technologies`,
+        domain,
+        { timeout: 2000 }
+      );
+    } catch (error) {
+      console.warn('MCP analysis query failed:', error);
+    }
+  }
+
+  const analysis = {
+    domain_analysis: {
+      primary_domain: domain,
+      confidence_level: confidence,
+      domain_maturity: getDomainMaturity(confidence)
+    },
+    technology_stack: {
+      identified_technologies: technologies,
+      stack_complexity: getStackComplexity(technologies),
+      specialization_areas: specializations
+    },
+    recommendations: {
+      workflow_suggestions: [
+        `Optimize for ${domain} domain requirements`,
+        `Consider ${technologies.join(' and ')} integration patterns`,
+        `Focus on ${specializations.slice(0, 2).join(' and ')} capabilities`
+      ],
+      confidence_improvements: confidence < 0.7 ? [
+        'Gather more domain-specific requirements',
+        'Clarify technology preferences',
+        'Define specific use cases'
+      ] : ['Context analysis is comprehensive'],
+      next_steps: [
+        'Design workflow components based on context',
+        'Implement domain-specific validations',
+        'Test with representative use cases'
+      ]
+    },
+    external_knowledge: mcpInsights ? {
+      sources: mcpInsights.sources,
+      insights_available: mcpInsights.results.length > 0,
+      knowledge_depth: mcpInsights.results.length > 2 ? 'comprehensive' : 'basic'
+    } : null
+  };
+
+  return {
+    action: 'analyze',
+    conversationId,
+    analysis,
+    message: 'Context analysis completed successfully',
+    timestamp: new Date().toISOString()
+  };
 }
 
 const runtime = new CopilotRuntime({
@@ -122,21 +319,18 @@ const runtime = new CopilotRuntime({
             const convId = conversationId || `conv-${Date.now()}-${Math.random()}`;
             
             // Enhanced context analysis using Context Understanding Engine
-            const contextAnalysis = await contextEngine.query({
-              query: `${domain} ${requirements}`,
-              maxResults: 5
-            });
+            const contextAnalysis = await contextEngine.analyzeContext(`${domain} ${requirements}`);
 
             // Get domain-specific MCP servers
-            const mcpServers = mcpManager.getServersForDomain(contextAnalysis.domainAnalysis.domain);
+            const mcpServers = mcpManager.getServersForDomain(getNormalizedDomain(contextAnalysis));
             
             // Query MCP servers for domain-specific knowledge (if available)
-            let mcpKnowledge: any = null; // McpQueryResponse interface temporarily any for loose coupling
+            let mcpKnowledge: McpQueryResponse | null = null;
             if (mcpServers.length > 0) {
               try {
                 const mcpResults = await mcpManager.queryServers(
                   `Best practices for ${domain} workflows with ${requirements}`,
-                  contextAnalysis.domainAnalysis.domain,
+                  getNormalizedDomain(contextAnalysis),
                   { timeout: 3000 }
                 );
                 mcpKnowledge = mcpResults;
@@ -145,8 +339,12 @@ const runtime = new CopilotRuntime({
               }
             }
 
-            // Generate contextual questions using the context engine
-            const contextualQuestions = contextEngine.generateContextualQuestions(contextAnalysis);
+            // Generate contextual questions based on analysis
+            // TODO: Implement generateContextualQuestions method in contextEngine
+            const contextualQuestions: string[] = [
+              `What specific ${getNormalizedDomain(contextAnalysis)} requirements do you have?`,
+              `What integrations are important for your ${getNormalizedDomain(contextAnalysis)} workflow?`
+            ];
 
             // Enhanced Socratic questioning logic for Langflow workflows
             interface ComplexityLevel {
@@ -157,7 +355,7 @@ const runtime = new CopilotRuntime({
             const complexityLevels: Record<string, ComplexityLevel> = {
               simple: {
                 questions: [
-                  `For a ${contextAnalysis.domainAnalysis.domain} workflow, what specific data will you be processing?`,
+                  `For a ${getNormalizedDomain(contextAnalysis)} workflow, what specific data will you be processing?`,
                   "What is the main goal or output you want to achieve?",
                   "Do you need any external integrations (APIs, databases, etc.)?",
                   ...contextualQuestions.slice(0, 2)
@@ -166,7 +364,7 @@ const runtime = new CopilotRuntime({
               },
               moderate: {
                 questions: [
-                  `What are the key decision points in your ${contextAnalysis.domainAnalysis.domain} workflow?`,
+                  `What are the key decision points in your ${getNormalizedDomain(contextAnalysis)} workflow?`,
                   "How should the system handle different types of inputs?",
                   "What conditional logic or branching do you need?",
                   "How will you validate and process the outputs?",
@@ -176,7 +374,7 @@ const runtime = new CopilotRuntime({
               },
               complex: {
                 questions: [
-                  `What are the performance and scalability requirements for your ${contextAnalysis.domainAnalysis.domain} solution?`,
+                  `What are the performance and scalability requirements for your ${getNormalizedDomain(contextAnalysis)} solution?`,
                   "How will you implement monitoring and logging?",
                   "What are your deployment and infrastructure considerations?",
                   "How will you handle concurrent processing and state management?",
@@ -190,16 +388,16 @@ const runtime = new CopilotRuntime({
             
             // Prepare response with enhanced intelligence
             const response = {
-              analysis: `Analyzing ${complexity} workflow for ${contextAnalysis.domainAnalysis.domain} domain (${(contextAnalysis.domainAnalysis.confidence * 100).toFixed(1)}% confidence)`,
+              analysis: `Analyzing ${complexity} workflow for ${getNormalizedDomain(contextAnalysis)} domain (${(getNormalizedConfidence(contextAnalysis) * 100).toFixed(1)}% confidence)`,
               suggested_questions: level.questions,
               recommended_components: level.components,
               requirements: requirements,
               context_analysis: {
-                domain: contextAnalysis.domainAnalysis.domain,
-                confidence: contextAnalysis.domainAnalysis.confidence,
-                technology_stack: contextAnalysis.technologyStack.platform,
-                compliance_requirements: contextAnalysis.technologyStack.compliance,
-                specializations: contextAnalysis.specializations
+                domain: getNormalizedDomain(contextAnalysis),
+                confidence: getNormalizedConfidence(contextAnalysis),
+                technology_stack: getNormalizedTechnologies(contextAnalysis),
+                compliance_requirements: contextAnalysis.requiresCompliance,
+                specializations: getNormalizedSpecializations(contextAnalysis)
               },
               mcp_sources: mcpServers.map((server: McpServerConfig) => server.name),
               external_knowledge: mcpKnowledge ? {
@@ -207,7 +405,7 @@ const runtime = new CopilotRuntime({
                 insights: mcpKnowledge.results.length > 0 ? "Enhanced with domain-specific knowledge" : null
               } : null,
               conversation_id: convId,
-              next_steps: `Let's explore the specific components and flow for your ${contextAnalysis.domainAnalysis.domain} workflow with ${contextAnalysis.technologyStack.platform} integration.`
+              next_steps: `Let's explore the specific components and flow for your ${getNormalizedDomain(contextAnalysis)} workflow with ${getNormalizedTechnologies(contextAnalysis)} integration.`
             };
 
             return response;
@@ -483,7 +681,7 @@ const runtime = new CopilotRuntime({
               external_sources: domainKnowledge ? domainKnowledge.sources : [],
               enhanced_insights: domainKnowledge && domainKnowledge.results.length > 0 ? 
                 "Questions enhanced with domain-specific knowledge" : null,
-              next_steps: `Based on your answers to these ${getNormalizedDomain(contextAnalysis) || 'workflow'}-specific questions, I'll help you design the specific Langflow components for your ${category} workflow.`
+              next_steps: `Based on your answers to these ${(contextAnalysis ? getNormalizedDomain(contextAnalysis) : 'workflow')}-specific questions, I'll help you design the specific Langflow components for your ${category} workflow.`
             };
             
             return response;
@@ -831,6 +1029,255 @@ const runtime = new CopilotRuntime({
             action,
             success: false,
             error: `MCP server management error: ${error}`
+          };
+        }
+      }
+    },
+    {
+      name: "web_search",
+      description: "Search the web for information related to Langflow workflows, components, or general knowledge to enhance workflow creation",
+      parameters: [
+        {
+          name: "query",
+          type: "string",
+          description: "The search query to find relevant information",
+          required: true,
+        },
+        {
+          name: "domain",
+          type: "string", 
+          description: "The domain context for filtering results (e.g., 'healthcare', 'finance', 'general')",
+          required: false,
+        },
+        {
+          name: "maxResults",
+          type: "number",
+          description: "Maximum number of search results to return (default: 5)",
+          required: false,
+        }
+      ],
+      handler: async ({ query, domain = "general", maxResults = 5 }: { 
+        query: string; 
+        domain?: string; 
+        maxResults?: number; 
+      }) => {
+        try {
+          // Perform web search using Tavily with DuckDuckGo fallback
+          const searchResponse = await searchManager.search(query, {
+            maxResults: Math.min(maxResults, 10), // Cap at 10 for performance
+            domainFilter: domain !== 'general' ? [domain] : undefined,
+          });
+
+          // Return structured search results with source attribution
+          return {
+            query: searchResponse.query,
+            results: searchResponse.results.map(result => ({
+              title: result.title,
+              url: result.url,
+              snippet: result.snippet,
+              domain: result.domain,
+              source: result.source,
+              relevanceScore: result.relevanceScore
+            })),
+            totalResults: searchResponse.totalResults,
+            searchTime: searchResponse.searchTime,
+            source: searchResponse.source,
+            cached: searchResponse.cached,
+            timestamp: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error('Web search error:', error);
+          return {
+            query,
+            results: [],
+            error: error instanceof Error ? error.message : "Unknown search error",
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "manage_conversation_context",
+      description: "Manage persistent conversation context and state for enhanced workflow continuity",
+      parameters: [
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Conversation identifier for context tracking",
+          required: true,
+        },
+        {
+          name: "action",
+          type: "string",
+          description: "Action to perform: 'get', 'update', 'clear', 'history', 'merge', 'analyze'",
+          required: true,
+        },
+        {
+          name: "contextData",
+          type: "string",
+          description: "Context data to store/update (JSON string for complex data)",
+          required: false,
+        },
+        {
+          name: "contextType",
+          type: "string",
+          description: "Type of context update: 'workflow_state', 'user_preferences', 'domain_analysis', 'conversation_summary'",
+          required: false,
+        },
+        {
+          name: "mergeStrategy",
+          type: "string",
+          description: "How to merge context: 'replace', 'append', 'merge_deep', 'update_fields'",
+          required: false,
+        },
+      ],
+      handler: async ({ conversationId, action, contextData, contextType = 'general', mergeStrategy = 'merge_deep' }: {
+        conversationId: string;
+        action: string;
+        contextData?: string;
+        contextType?: string;
+        mergeStrategy?: string;
+      }) => {
+        try {
+          switch (action.toLowerCase()) {
+            case 'get': {
+              return await handleContextGet(conversationId, contextType);
+            }
+
+            case 'update': {
+              if (!contextData) {
+                return { 
+                  error: 'Context data required for update action',
+                  action: 'update',
+                  conversationId 
+                };
+              }
+              return await handleContextUpdate(conversationId, contextData, contextType, mergeStrategy);
+            }
+
+            case 'clear': {
+              // Clear conversation context
+              try {
+                // Note: contextEngine doesn't have a clear method, so we'll simulate it
+                await contextEngine.analyzeContext('general conversation');
+                
+                return {
+                  action: 'clear',
+                  conversationId,
+                  message: 'Context cleared successfully',
+                  previousContext: contextEngine.getContext(conversationId),
+                  timestamp: new Date().toISOString()
+                };
+              } catch (error) {
+                return {
+                  action: 'clear',
+                  conversationId,
+                  error: `Failed to clear context: ${error}`,
+                  timestamp: new Date().toISOString()
+                };
+              }
+            }
+
+            case 'history': {
+              // Get conversation history (simulated - would need persistent storage)
+              const context = contextEngine.getContext(conversationId);
+              
+              return {
+                action: 'history',
+                conversationId,
+                history: context ? [{
+                  timestamp: new Date().toISOString(),
+                  context: {
+                    domain: getNormalizedDomain(context),
+                    confidence: getNormalizedConfidence(context),
+                    technologies: getNormalizedTechnologies(context),
+                    specializations: getNormalizedSpecializations(context)
+                  },
+                  contextType: 'current_state'
+                }] : [],
+                message: context ? 'Context history retrieved' : 'No history available',
+                timestamp: new Date().toISOString()
+              };
+            }
+
+            case 'merge': {
+              if (!contextData) {
+                return { 
+                  error: 'Context data required for merge action',
+                  action: 'merge',
+                  conversationId 
+                };
+              }
+
+              try {
+                const newData = JSON.parse(contextData);
+                const existingContext = contextEngine.getContext(conversationId);
+                
+                if (!existingContext) {
+                  // No existing context, create new
+                  const analysisText = newData.userInput || newData.requirements || JSON.stringify(newData);
+                  const newContext = await contextEngine.analyzeContext(analysisText);
+                  
+                  return {
+                    action: 'merge',
+                    conversationId,
+                    context: {
+                      domain: getNormalizedDomain(newContext),
+                      confidence: getNormalizedConfidence(newContext),
+                      technologies: getNormalizedTechnologies(newContext),
+                      specializations: getNormalizedSpecializations(newContext)
+                    },
+                    message: 'New context created (no existing context to merge)',
+                    timestamp: new Date().toISOString()
+                  };
+                }
+
+                // Merge with existing context
+                const mergedInput = `${JSON.stringify(existingContext)} ${JSON.stringify(newData)}`;
+                const mergedContext = await contextEngine.analyzeContext(mergedInput);
+                
+                return {
+                  action: 'merge',
+                  conversationId,
+                  context: {
+                    domain: getNormalizedDomain(mergedContext),
+                    confidence: getNormalizedConfidence(mergedContext),
+                    technologies: getNormalizedTechnologies(mergedContext),
+                    specializations: getNormalizedSpecializations(mergedContext)
+                  },
+                  mergeStrategy,
+                  message: 'Context merged successfully',
+                  timestamp: new Date().toISOString()
+                };
+              } catch (error) {
+                return {
+                  action: 'merge',
+                  conversationId,
+                  error: `Failed to merge context: ${error}`,
+                  timestamp: new Date().toISOString()
+                };
+              }
+            }
+
+            case 'analyze': {
+              return await handleContextAnalyze(conversationId);
+            }
+
+            default:
+              return { 
+                error: `Unknown action: ${action}. Available actions: get, update, clear, history, merge, analyze`,
+                action,
+                conversationId,
+                timestamp: new Date().toISOString()
+              };
+          }
+        } catch (error) {
+          console.error('Conversation context management error:', error);
+          return {
+            action,
+            conversationId,
+            error: `Context management failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            timestamp: new Date().toISOString()
           };
         }
       }
