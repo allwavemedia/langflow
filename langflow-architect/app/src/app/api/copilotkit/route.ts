@@ -1,0 +1,321 @@
+import {
+  CopilotRuntime,
+  OpenAIAdapter,
+  copilotRuntimeNextJSAppRouterEndpoint,
+} from "@copilotkit/runtime";
+import OpenAI from "openai";
+import { NextRequest } from "next/server";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const serviceAdapter = new OpenAIAdapter({ openai });
+
+const runtime = new CopilotRuntime({
+  actions: [
+    {
+      name: "analyze_workflow_requirements",
+      description: "Analyze user requirements and suggest workflow structure for Langflow",
+      parameters: [
+        {
+          name: "domain",
+          type: "string",
+          description: "The domain or industry for the workflow",
+          required: true,
+        },
+        {
+          name: "complexity",
+          type: "string",
+          description: "The complexity level of the workflow (simple, moderate, complex)",
+          required: true,
+        },
+        {
+          name: "requirements",
+          type: "string",
+          description: "Detailed description of specific requirements",
+          required: true,
+        },
+      ],
+      handler: async ({ domain, complexity, requirements }: {
+        domain: string;
+        complexity: string;
+        requirements: string;
+      }) => {
+        // Enhanced Socratic questioning logic for Langflow workflows
+        interface ComplexityLevel {
+          questions: string[];
+          components: string[];
+        }
+        
+        const complexityLevels: Record<string, ComplexityLevel> = {
+          simple: {
+            questions: [
+              `For a ${domain} workflow, what specific data will you be processing?`,
+              "What is the main goal or output you want to achieve?",
+              "Do you need any external integrations (APIs, databases, etc.)?"
+            ],
+            components: ["Input nodes", "LLM processing", "Output formatting"]
+          },
+          moderate: {
+            questions: [
+              `What are the key decision points in your ${domain} workflow?`,
+              "How should the system handle different types of inputs?",
+              "What conditional logic or branching do you need?",
+              "How will you validate and process the outputs?"
+            ],
+            components: ["Multi-step processing", "Conditional logic", "Data validation", "Error handling"]
+          },
+          complex: {
+            questions: [
+              `What are the performance and scalability requirements for your ${domain} solution?`,
+              "How will you implement monitoring and logging?",
+              "What are your deployment and infrastructure considerations?",
+              "How will you handle concurrent processing and state management?"
+            ],
+            components: ["Advanced orchestration", "State management", "Monitoring", "Scalability patterns"]
+          }
+        };
+
+        const level = complexityLevels[complexity.toLowerCase()] || complexityLevels.simple;
+        
+        return {
+          analysis: `Analyzing ${complexity} workflow for ${domain} domain`,
+          suggested_questions: level.questions,
+          recommended_components: level.components,
+          requirements: requirements,
+          next_steps: `Let's explore the specific components and flow for your ${domain} workflow.`
+        };
+      }
+    },
+    {
+      name: "generate_workflow_questions",
+      description: "Generate Socratic questions based on workflow category and user expertise",
+      parameters: [
+        {
+          name: "category",
+          type: "string",
+          description: "The workflow category (e.g., 'chatbot', 'data processing', 'automation', 'content generation')",
+          required: true,
+        },
+        {
+          name: "user_expertise",
+          type: "string",
+          description: "User's technical expertise level (beginner, intermediate, advanced)",
+          required: true,
+        },
+      ],
+      handler: async ({ category, user_expertise }: {
+        category: string;
+        user_expertise: string;
+      }) => {
+        // Enhanced Socratic questioning based on Langflow capabilities
+        const questionTemplates: Record<string, Record<string, string[]>> = {
+          beginner: {
+            chatbot: [
+              "What kind of conversations should your chatbot handle?",
+              "What personality or tone should your chatbot have?",
+              "Where will users interact with your chatbot (web, mobile, messaging)?",
+              "What information sources should your chatbot draw from?"
+            ],
+            "data processing": [
+              "What type of data are you working with (text, images, documents)?",
+              "What should happen to the data after processing?",
+              "Do you need to clean or format the data in any specific way?",
+              "How often will new data need to be processed?"
+            ],
+            automation: [
+              "What repetitive task do you want to automate?",
+              "What triggers should start the automation?",
+              "What steps does the current manual process involve?",
+              "How will you know when the automation completes successfully?"
+            ],
+            "content generation": [
+              "What type of content do you want to generate?",
+              "Who is your target audience?",
+              "What style or format should the content follow?",
+              "What inputs will guide the content generation?"
+            ]
+          },
+          intermediate: {
+            chatbot: [
+              "How will your chatbot maintain conversation context?",
+              "What APIs or external services will it integrate with?",
+              "How will you handle user authentication and personalization?",
+              "What fallback mechanisms will you implement for unclear queries?"
+            ],
+            "data processing": [
+              "What data validation and quality checks do you need?",
+              "How will you handle different data formats and sources?",
+              "What transformation logic needs to be applied?",
+              "How will you manage data pipeline failures and retries?"
+            ],
+            automation: [
+              "What conditional logic and decision points are needed?",
+              "How will you handle exceptions and edge cases?",
+              "What approval workflows or human-in-the-loop steps are required?",
+              "How will you log and monitor the automation performance?"
+            ],
+            "content generation": [
+              "What content templates and structures will you use?",
+              "How will you ensure content quality and consistency?",
+              "What review and approval processes are needed?",
+              "How will you personalize content for different segments?"
+            ]
+          },
+          advanced: {
+            chatbot: [
+              "How will you implement advanced NLP features like intent recognition?",
+              "What conversation flow management and state handling is required?",
+              "How will you scale to handle multiple concurrent conversations?",
+              "What analytics and conversation optimization strategies will you use?"
+            ],
+            "data processing": [
+              "What distributed processing and parallel execution patterns will you use?",
+              "How will you implement data lineage and governance?",
+              "What real-time vs batch processing requirements do you have?",
+              "How will you optimize for cost and performance at scale?"
+            ],
+            automation: [
+              "What orchestration patterns and workflow engines will you leverage?",
+              "How will you implement complex business rules and decision trees?",
+              "What monitoring, alerting, and recovery mechanisms are needed?",
+              "How will you version and deploy workflow changes safely?"
+            ],
+            "content generation": [
+              "What advanced AI techniques (RAG, fine-tuning) will you employ?",
+              "How will you implement content scoring and optimization?",
+              "What A/B testing and performance measurement strategies will you use?",
+              "How will you ensure content compliance and brand consistency at scale?"
+            ]
+          }
+        };
+        
+        const expertiseQuestions = questionTemplates[user_expertise.toLowerCase()];
+        const questions = expertiseQuestions?.[category.toLowerCase()] || 
+                         questionTemplates.beginner[category.toLowerCase()] ||
+                         [`What are the main requirements for your ${category} workflow?`];
+        
+        return {
+          questions,
+          category,
+          expertise_level: user_expertise,
+          next_steps: `Based on your answers, I'll help you design the specific Langflow components for your ${category} workflow.`
+        };
+      }
+    },
+    {
+      name: "generate_langflow_json",
+      description: "Generate a Langflow JSON workflow based on the analyzed requirements",
+      parameters: [
+        {
+          name: "workflow_description",
+          type: "string",
+          description: "Complete description of the workflow requirements",
+          required: true,
+        },
+        {
+          name: "components",
+          type: "string",
+          description: "List of required components and their connections",
+          required: true,
+        },
+      ],
+      handler: async ({ workflow_description, components }: {
+        workflow_description: string;
+        components: string;
+      }) => {
+        // Generate a basic Langflow JSON structure
+        const langflowTemplate = {
+          data: {
+            nodes: [
+              {
+                id: "input-1",
+                type: "ChatInput",
+                position: { x: 100, y: 200 },
+                data: {
+                  type: "ChatInput",
+                  node: {
+                    template: {
+                      input_value: {
+                        display_name: "Text",
+                        type: "str",
+                        value: "User input will be processed here"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                id: "llm-1", 
+                type: "OpenAIModel",
+                position: { x: 400, y: 200 },
+                data: {
+                  type: "OpenAIModel",
+                  node: {
+                    template: {
+                      model_name: {
+                        value: "gpt-3.5-turbo"
+                      },
+                      input_value: {
+                        display_name: "Input",
+                        type: "str"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                id: "output-1",
+                type: "ChatOutput", 
+                position: { x: 700, y: 200 },
+                data: {
+                  type: "ChatOutput",
+                  node: {
+                    template: {
+                      input_value: {
+                        display_name: "Text",
+                        type: "str"
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            edges: [
+              {
+                id: "edge-1",
+                source: "input-1",
+                target: "llm-1"
+              },
+              {
+                id: "edge-2", 
+                source: "llm-1",
+                target: "output-1"
+              }
+            ]
+          },
+          description: workflow_description,
+          name: "Generated Workflow"
+        };
+
+        return {
+          langflow_json: langflowTemplate,
+          description: "Generated Langflow workflow based on your requirements",
+          components_used: components,
+          next_steps: "You can now download this JSON file and import it into Langflow for further customization."
+        };
+      }
+    }
+  ],
+});
+
+export const POST = async (req: NextRequest) => {
+  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
+    runtime,
+    serviceAdapter,
+    endpoint: "/api/copilotkit",
+  });
+
+  return handleRequest(req);
+};
