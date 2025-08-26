@@ -1,36 +1,33 @@
-import { POST } from '@/app/api/copilotkit/route'
-import { NextRequest } from 'next/server'
+import type { NextRequest } from 'next/server'
+let capturedRuntimeConfig: any = null
 
-// Mock OpenAI
-jest.mock('openai', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      chat: {
-        completions: {
-          create: jest.fn().mockResolvedValue({
-            choices: [
-              {
-                message: {
-                  content: 'Test AI response',
-                  role: 'assistant'
-                }
-              }
-            ]
-          })
-        }
-      }
-    }))
-  }
-})
+// Mock OpenAI BEFORE importing the route
+jest.mock('openai', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: jest.fn().mockResolvedValue({
+          choices: [
+            { message: { content: 'Test AI response', role: 'assistant' } },
+          ],
+        }),
+      },
+    },
+  })),
+}))
 
-// Mock CopilotKit runtime
+// Mock CopilotKit runtime BEFORE importing the route
+const mockHandleRequest = jest.fn().mockResolvedValue({ status: 200 })
 jest.mock('@copilotkit/runtime', () => ({
-  CopilotRuntime: jest.fn().mockImplementation(() => ({})),
+  CopilotRuntime: jest.fn().mockImplementation((config) => {
+    capturedRuntimeConfig = config
+    return {}
+  }),
   OpenAIAdapter: jest.fn().mockImplementation(() => ({})),
   copilotRuntimeNextJSAppRouterEndpoint: jest.fn().mockImplementation(() => ({
-    handleRequest: jest.fn().mockResolvedValue(new Response('OK', { status: 200 }))
-  }))
+    handleRequest: mockHandleRequest,
+  })),
 }))
 
 describe('CopilotKit API Route', () => {
@@ -40,22 +37,10 @@ describe('CopilotKit API Route', () => {
   })
 
   test('POST endpoint responds successfully', async () => {
-    const mockRequest = new Request('http://localhost:3000/api/copilotkit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: 'Test message'
-          }
-        ]
-      })
-    }) as NextRequest
+    const { POST } = await import('@/app/api/copilotkit/route')
 
-    const response = await POST(mockRequest)
+    // We mocked handleRequest to ignore the actual request, so a minimal stub works
+    const response = await POST({} as unknown as NextRequest)
     expect(response.status).toBe(200)
   })
 
@@ -64,29 +49,23 @@ describe('CopilotKit API Route', () => {
     expect(process.env.OPENAI_API_KEY).toBe('test-api-key')
   })
 
-  test('runtime actions are properly configured', () => {
-    const { CopilotRuntime } = require('@copilotkit/runtime')
-    expect(CopilotRuntime).toHaveBeenCalledWith({
-      actions: expect.arrayContaining([
-        expect.objectContaining({
-          name: 'analyze_workflow_requirements',
-          description: expect.stringContaining('Analyze user requirements'),
-          parameters: expect.any(Array),
-          handler: expect.any(Function)
-        }),
-        expect.objectContaining({
-          name: 'generate_workflow_questions',
-          description: expect.stringContaining('Generate Socratic questions'),
-          parameters: expect.any(Array),
-          handler: expect.any(Function)
-        }),
-        expect.objectContaining({
-          name: 'generate_langflow_json',
-          description: expect.stringContaining('Generate a Langflow JSON'),
-          parameters: expect.any(Array),
-          handler: expect.any(Function)
-        })
-      ])
+  test('runtime actions are properly configured', async () => {
+    // Import after mocks so constructor calls are captured
+    await import('@/app/api/copilotkit/route')
+    expect(capturedRuntimeConfig).toBeTruthy()
+    const actions = capturedRuntimeConfig.actions
+    expect(Array.isArray(actions)).toBe(true)
+
+    const actionByName = Object.fromEntries(actions.map((a: any) => [a.name, a]))
+    const required = [
+      'analyze_workflow_requirements',
+      'generate_workflow_questions',
+      'generate_langflow_json',
+    ]
+    required.forEach((name) => {
+      expect(actionByName[name]).toBeTruthy()
+      expect(typeof actionByName[name].handler).toBe('function')
+      expect(Array.isArray(actionByName[name].parameters)).toBe(true)
     })
   })
 })

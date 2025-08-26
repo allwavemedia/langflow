@@ -28,4 +28,5 @@ VARIABLES_TO_GET_FROM_ENVIRONMENT = [
     "AWS_SECRET_ACCESS_KEY",
     "NOVITA_API_KEY",
     "TAVILY_API_KEY",
+    "GITHUB_TOKEN",  # Added for Langflow documentation integration
 ]

@@ -8,7 +8,6 @@ const mockUseCopilotAction = jest.fn()
 const mockUseCopilotReadable = jest.fn()
 
 jest.mock('@copilotkit/react-core', () => ({
-  ...jest.requireActual('@copilotkit/react-core'),
   useCopilotAction: () => mockUseCopilotAction(),
   useCopilotReadable: () => mockUseCopilotReadable(),
 }))
@@ -66,8 +65,8 @@ describe('Socratic Langflow Architect - Home Page', () => {
   test('registers CopilotKit actions correctly', () => {
     render(<Home />)
     
-    // Verify that CopilotKit actions are registered
-    expect(mockUseCopilotAction).toHaveBeenCalledTimes(3)
+  // Verify that CopilotKit actions are registered
+  expect(mockUseCopilotAction).toHaveBeenCalledTimes(4)
     expect(mockUseCopilotReadable).toHaveBeenCalledTimes(1)
   })
 
@@ -150,11 +149,11 @@ describe('Socratic Langflow Architect - Home Page', () => {
   test('has proper responsive design classes', () => {
     render(<Home />)
     
-    const mainContainer = screen.getByText('Socratic Langflow Architect').closest('div')
-    expect(mainContainer).toHaveClass('min-h-screen', 'bg-gradient-to-br', 'from-blue-50', 'to-indigo-100')
+  const mainContainer = document.querySelector('div.min-h-screen.bg-gradient-to-br.from-blue-50.to-indigo-100')
+  expect(mainContainer).toBeInTheDocument()
     
-    const gridContainer = screen.getByText('Current Analysis').closest('div')?.parentElement
-    expect(gridContainer).toHaveClass('grid', 'md:grid-cols-2', 'gap-8')
+  const gridContainer = screen.getByText('Current Analysis').closest('div')?.parentElement
+  expect(gridContainer).toHaveClass('grid', 'md:grid-cols-3', 'gap-8')
   })
 
   test('accessibility features are present', () => {
@@ -162,7 +161,7 @@ describe('Socratic Langflow Architect - Home Page', () => {
     
     // Check for proper heading hierarchy
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Socratic Langflow Architect')
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3)
+  expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(4)
     
     // Check for proper list structure
     expect(screen.getByRole('list')).toBeInTheDocument()

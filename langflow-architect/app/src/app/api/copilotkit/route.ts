@@ -5,8 +5,8 @@ import {
 } from "@copilotkit/runtime";
 import OpenAI from "openai";
 import { NextRequest } from "next/server";
-import { contextEngine } from "../../../lib/enhanced/contextEngine";
-import { mcpManager } from "../../../lib/enhanced/mcpManager";
+import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEngine";
+import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented  
 // import { EnhancedCopilotManager } from "../../../lib/enhanced/EnhancedCopilotManager";
 
@@ -19,6 +19,31 @@ const serviceAdapter = new OpenAIAdapter({ openai });
 // Initialize the enhanced copilot manager
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented
 // const enhancedManager = new EnhancedCopilotManager(runtime);
+
+// Helper to normalize context shapes
+function getNormalizedDomain(contextAnalysis: any): string {
+  return 'domainAnalysis' in contextAnalysis 
+    ? contextAnalysis.domainAnalysis.domain 
+    : contextAnalysis.domain || 'general';
+}
+
+function getNormalizedConfidence(contextAnalysis: any): number {
+  return 'domainAnalysis' in contextAnalysis 
+    ? contextAnalysis.domainAnalysis.confidence 
+    : contextAnalysis.confidence || 0.6;
+}
+
+function getNormalizedTechnologies(contextAnalysis: any): string[] {
+  return 'technologyStack' in contextAnalysis 
+    ? contextAnalysis.technologyStack.platform 
+    : contextAnalysis.technologies || [];
+}
+
+function getNormalizedSpecializations(contextAnalysis: any): string[] {
+  return 'specializations' in contextAnalysis 
+    ? contextAnalysis.specializations 
+    : contextAnalysis.suggestedIntegrations || [];
+}
 
 const runtime = new CopilotRuntime({
   actions: [
@@ -106,7 +131,7 @@ const runtime = new CopilotRuntime({
             const mcpServers = mcpManager.getServersForDomain(contextAnalysis.domainAnalysis.domain);
             
             // Query MCP servers for domain-specific knowledge (if available)
-            let mcpKnowledge: any = null;
+            let mcpKnowledge: any = null; // McpQueryResponse interface temporarily any for loose coupling
             if (mcpServers.length > 0) {
               try {
                 const mcpResults = await mcpManager.queryServers(
@@ -176,7 +201,7 @@ const runtime = new CopilotRuntime({
                 compliance_requirements: contextAnalysis.technologyStack.compliance,
                 specializations: contextAnalysis.specializations
               },
-              mcp_sources: mcpServers.map((server: any) => server.name),
+              mcp_sources: mcpServers.map((server: McpServerConfig) => server.name),
               external_knowledge: mcpKnowledge ? {
                 sources: mcpKnowledge.sources,
                 insights: mcpKnowledge.results.length > 0 ? "Enhanced with domain-specific knowledge" : null
@@ -190,7 +215,11 @@ const runtime = new CopilotRuntime({
             console.error('Fallback analysis also failed:', fallbackError);
             
             // Basic fallback if all enhanced features fail
-            const complexityLevels: Record<string, any> = {
+            interface ComplexityLevel {
+              questions: string[];
+              components: string[];
+            }
+            const complexityLevels: Record<string, ComplexityLevel> = {
               simple: {
                 questions: [
                   `For a ${domain} workflow, what specific data will you be processing?`,
@@ -289,7 +318,11 @@ const runtime = new CopilotRuntime({
           
           // Fallback to contextEngine approach
           try {
-            let contextAnalysis = null;
+            let contextAnalysis: ContextAnalysis | {
+              domainAnalysis: { domain: string; confidence: number };
+              technologyStack: { platform: string[] | string; compliance: boolean };
+              specializations: string[];
+            } | null = null;
             
             // Get or update conversation context
             if (conversationId) {
@@ -306,15 +339,16 @@ const runtime = new CopilotRuntime({
             }
 
             // Get domain-specific MCP servers if we have context
-            let domainKnowledge: any = null;
+            let domainKnowledge: McpQueryResponse | null = null;
             if (contextAnalysis) {
-              const mcpServers = mcpManager.getServersForDomain(contextAnalysis.domainAnalysis.domain);
-              
+              // Normalize context across ContextEngine.getContext and .query shapes
+              const domainName = getNormalizedDomain(contextAnalysis);
+              const mcpServers = mcpManager.getServersForDomain(domainName);
               if (mcpServers.length > 0) {
                 try {
                   const mcpResults = await mcpManager.queryServers(
-                    `Common questions and considerations for ${category} in ${contextAnalysis.domainAnalysis.domain}`,
-                    contextAnalysis.domainAnalysis.domain,
+                    `Common questions and considerations for ${category} in ${domainName}`,
+                    domainName,
                     { timeout: 2000 }
                   );
                   domainKnowledge = mcpResults;
@@ -413,7 +447,19 @@ const runtime = new CopilotRuntime({
 
             // Enhance questions with context-specific ones
             if (contextAnalysis) {
-              const contextualQuestions = contextEngine.generateContextualQuestions(contextAnalysis);
+              // Convert ContextAnalysis to query result shape for generateContextualQuestions
+              const queryShape = {
+                domainAnalysis: { 
+                  domain: getNormalizedDomain(contextAnalysis), 
+                  confidence: getNormalizedConfidence(contextAnalysis) 
+                },
+                technologyStack: { 
+                  platform: getNormalizedTechnologies(contextAnalysis), 
+                  compliance: 'requiresCompliance' in contextAnalysis ? contextAnalysis.requiresCompliance : false 
+                },
+                specializations: getNormalizedSpecializations(contextAnalysis)
+              };
+              const contextualQuestions = contextEngine.generateContextualQuestions(queryShape);
               questions = [...questions.slice(0, 3), ...contextualQuestions.slice(0, 2)];
             }
 
@@ -422,16 +468,22 @@ const runtime = new CopilotRuntime({
               questions: questions.slice(0, 5), // Limit to 5 questions
               category,
               expertise_level: user_expertise,
-              context_intelligence: contextAnalysis ? {
-                domain: contextAnalysis.domainAnalysis.domain,
-                confidence: contextAnalysis.domainAnalysis.confidence,
-                technology_stack: contextAnalysis.technologyStack.platform,
-                specializations: contextAnalysis.specializations
-              } : null,
+              context_intelligence: contextAnalysis ? (() => {
+                const domain = getNormalizedDomain(contextAnalysis);
+                const confidence = getNormalizedConfidence(contextAnalysis);
+                const platform = getNormalizedTechnologies(contextAnalysis);
+                const specializations = getNormalizedSpecializations(contextAnalysis);
+                return {
+                  domain,
+                  confidence,
+                  technology_stack: platform,
+                  specializations,
+                };
+              })() : null,
               external_sources: domainKnowledge ? domainKnowledge.sources : [],
-              enhanced_insights: domainKnowledge?.results.length > 0 ? 
+              enhanced_insights: domainKnowledge && domainKnowledge.results.length > 0 ? 
                 "Questions enhanced with domain-specific knowledge" : null,
-              next_steps: `Based on your answers to these ${contextAnalysis?.domainAnalysis.domain || 'workflow'}-specific questions, I'll help you design the specific Langflow components for your ${category} workflow.`
+              next_steps: `Based on your answers to these ${getNormalizedDomain(contextAnalysis) || 'workflow'}-specific questions, I'll help you design the specific Langflow components for your ${category} workflow.`
             };
             
             return response;
@@ -674,7 +726,7 @@ const runtime = new CopilotRuntime({
               const servers = mcpManager.getAllServers();
               return {
                 action: 'list',
-                servers: servers.map((server: any) => ({
+                servers: servers.map((server: McpServerConfig) => ({
                   id: server.id,
                   name: server.name,
                   description: server.description,
@@ -685,7 +737,7 @@ const runtime = new CopilotRuntime({
                   healthStatus: server.healthStatus,
                   lastChecked: server.lastChecked
                 })),
-                summary: `Found ${servers.length} MCP servers (${servers.filter((s: any) => s.isActive).length} active)`
+                summary: `Found ${servers.length} MCP servers (${servers.filter((s: McpServerConfig) => s.isActive).length} active)`
               };
 
             case 'add':
@@ -711,7 +763,7 @@ const runtime = new CopilotRuntime({
                     error: 'Failed to register MCP server'
                   };
                 }
-              } catch (parseError) {
+              } catch {
                 return {
                   action: 'add',
                   success: false,

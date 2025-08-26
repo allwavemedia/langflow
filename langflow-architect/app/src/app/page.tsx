@@ -10,15 +10,46 @@ interface WorkflowData {
   complexity: string;
   timestamp: string;
   attribution?: string;
-  knowledgeSources?: any[];
+  knowledgeSources?: AttributionSource[];
   complianceAlerts?: string[];
   confidenceScore?: number;
 }
 
+type AttributionSource = {
+  id: string;
+  type: "web-search" | "mcp" | "static-knowledge";
+  provider: string;
+  url?: string;
+  title: string;
+  confidence: number;
+  timestamp: string;
+};
+
+type EnhancementStats = {
+  cache: {
+    cacheSize: number;
+    maxSize: number;
+    hitRate: number;
+    missRate: number;
+    totalQueries: number;
+    utilizationRate: number;
+  };
+  topPerformingSources: Array<{
+    provider: string;
+    type: string;
+    totalUses: number;
+    averageConfidence: number;
+  }>;
+  searchManagerStatus: {
+    tavilyEnabled: boolean;
+    duckduckgoEnabled: boolean;
+  };
+};
+
 export default function Home() {
   const [workflowData, setWorkflowData] = useState<WorkflowData | null>(null);
   const [currentQuestions, setCurrentQuestions] = useState<string[]>([]);
-  const [enhancementStats, setEnhancementStats] = useState<any>(null);
+  const [enhancementStats, setEnhancementStats] = useState<EnhancementStats | null>(null);
 
   // Make the current workflow data readable by the AI
   useCopilotReadable({
@@ -167,7 +198,7 @@ export default function Home() {
         
         setEnhancementStats(mockStats);
         return "Enhancement statistics retrieved! Check the Statistics panel for cache performance and search provider information.";
-      } catch (error) {
+  } catch {
         return "Unable to retrieve enhancement statistics at this time.";
       }
     },
@@ -223,7 +254,7 @@ export default function Home() {
                     <span className="font-medium text-yellow-800">⚠️ Compliance Alerts:</span>
                     <ul className="mt-1 text-sm text-yellow-700">
                       {workflowData.complianceAlerts.map((alert, index) => (
-                        <li key={index}>• {alert}</li>
+                        <li key={`alert-${index}-${alert.slice(0,20)}`}>• {alert}</li>
                       ))}
                     </ul>
                   </div>
@@ -297,7 +328,7 @@ export default function Home() {
                   No statistics available yet.
                 </p>
                 <p className="text-sm text-blue-600">
-                  Ask the AI to "show enhancement statistics"
+                  Ask the AI to &quot;show enhancement statistics&quot;
                 </p>
               </div>
             )}
