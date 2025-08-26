@@ -8,6 +8,7 @@ import { NextRequest } from "next/server";
 import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEngine";
 import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
 import { searchManager } from "../../../lib/enhanced/searchManager";
+import { githubDocsManager, DocSearchResult, GitHubDocsResponse } from "../../../lib/enhanced/githubDocsManager";
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented  
 // import { EnhancedCopilotManager } from "../../../lib/enhanced/EnhancedCopilotManager";
 
@@ -1308,6 +1309,266 @@ const runtime = new CopilotRuntime({
           return {
             message: "Unable to retrieve enhancement statistics",
             error: error instanceof Error ? error.message : "Unknown error",
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "enhanced_workflow_analysis",
+      description: "Enhanced workflow analysis with conversation context integration and GitHub documentation grounding",
+      parameters: [
+        {
+          name: "domain",
+          type: "string",
+          description: "The domain or industry for the workflow",
+          required: true,
+        },
+        {
+          name: "requirements",
+          type: "string",
+          description: "Detailed description of workflow requirements",
+          required: true,
+        },
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Conversation ID for context tracking",
+          required: false,
+        },
+        {
+          name: "includeDocumentation",
+          type: "boolean",
+          description: "Whether to include relevant Langflow documentation",
+          required: false,
+        },
+        {
+          name: "complexityLevel",
+          type: "string",
+          description: "Expected complexity level (basic, intermediate, advanced)",
+          required: false,
+        },
+      ],
+      handler: async ({ domain, requirements, conversationId, includeDocumentation, complexityLevel }: {
+        domain: string;
+        requirements: string;
+        conversationId?: string;
+        includeDocumentation?: boolean;
+        complexityLevel?: string;
+      }) => {
+        try {
+          const convId = conversationId || `enhanced-${Date.now()}-${Math.random()}`;
+          
+          // 1. Enhanced context analysis using existing context engine
+          const contextAnalysis = await contextEngine.analyzeContext(`${domain} ${requirements}`);
+          const normalizedDomain = getNormalizedDomain(contextAnalysis);
+          const technologies = getNormalizedTechnologies(contextAnalysis);
+
+          // 2. Get conversation context if available
+          let conversationContext = null;
+          try {
+            conversationContext = contextEngine.getContext(convId);
+          } catch {
+            console.log('No existing conversation context found, creating new analysis');
+          }
+
+          // 3. Query MCP servers for domain-specific knowledge
+          let mcpKnowledge: McpQueryResponse | null = null;
+          const mcpServers = mcpManager.getServersForDomain(normalizedDomain);
+          if (mcpServers.length > 0) {
+            try {
+              mcpKnowledge = await mcpManager.queryServers(
+                `Best practices and recommendations for ${domain} workflows with requirements: ${requirements}`,
+                normalizedDomain,
+                { timeout: 3000 }
+              );
+            } catch (error) {
+              console.warn('MCP query failed during enhanced analysis:', error);
+            }
+          }
+
+          // 4. GitHub documentation grounding (if enabled)
+          let documentationResults: DocSearchResult[] = [];
+          if (includeDocumentation !== false) {
+            try {
+              // Search for relevant components and concepts
+              const docsResponse = await githubDocsManager.searchDocumentation(
+                `${domain} ${requirements} workflow components`,
+                {
+                  maxResults: 3,
+                  includeContent: true
+                }
+              );
+              documentationResults = docsResponse.results;
+
+              // Search for specific component documentation based on detected technologies
+              for (const tech of technologies.slice(0, 2)) { // Limit to avoid too many requests
+                const techDocs = await githubDocsManager.getComponentDocumentation(tech);
+                documentationResults.push(...techDocs.slice(0, 1)); // Add one result per technology
+              }
+            } catch (error) {
+              console.warn('Documentation search failed during enhanced analysis:', error);
+            }
+          }
+
+          // 5. Enhanced workflow recommendations
+          const baseComponents = ['ChatInput', 'LLM', 'ChatOutput'];
+          const domainComponents: Record<string, string[]> = {
+            healthcare: ['FHIR_API', 'HL7_Parser', 'Medical_NLP', 'Compliance_Logger'],
+            finance: ['Payment_Gateway', 'Risk_Assessment', 'Fraud_Detection', 'Audit_Trail'],
+            ecommerce: ['Product_API', 'Inventory_Check', 'Order_Processing', 'Customer_Support'],
+            education: ['LMS_Integration', 'Student_Assessment', 'Content_Delivery', 'Progress_Tracking'],
+            general: ['Text_Processing', 'Web_Search', 'Data_Storage', 'API_Integration']
+          };
+
+          const suggestedComponents = [...baseComponents];
+          const domainSpecific = domainComponents[normalizedDomain.toLowerCase()] || domainComponents.general;
+          suggestedComponents.push(...domainSpecific.slice(0, 3));
+
+          // Add components found in documentation
+          documentationResults.forEach(doc => {
+            if (doc.title.toLowerCase().includes('component')) {
+              const componentName = doc.title.replace(/\s+/g, '_');
+              if (!suggestedComponents.includes(componentName)) {
+                suggestedComponents.push(componentName);
+              }
+            }
+          });
+
+          const recommendations = {
+            domain: normalizedDomain,
+            complexity: complexityLevel || contextAnalysis.complexity || 'intermediate',
+            confidence: getNormalizedConfidence(contextAnalysis),
+            suggestedComponents: suggestedComponents.slice(0, 8),
+            workflowPattern: requirements.toLowerCase().includes('chat') ? 'conversational-ai' : 
+                           requirements.toLowerCase().includes('api') ? 'api-integration' : 'general-purpose',
+            documentationReferences: documentationResults.map(doc => ({
+              title: doc.title,
+              category: doc.category,
+              url: doc.url,
+              relevance: doc.relevanceScore || 0.5
+            })),
+            conversationInsights: conversationContext ? {
+              previousDomain: getNormalizedDomain(conversationContext),
+              contextEvolution: 'Building on previous analysis'
+            } : null
+          };
+
+          return {
+            message: `Enhanced analysis completed for ${domain} workflow`,
+            analysis: {
+              domain: normalizedDomain,
+              requirements,
+              confidence: recommendations.confidence,
+              complexity: recommendations.complexity,
+              recommendations,
+              mcpInsights: mcpKnowledge ? {
+                sources: mcpKnowledge.sources,
+                recommendations: mcpKnowledge.results.slice(0, 2)
+              } : null,
+              documentationSupport: documentationResults.length > 0 ? {
+                totalReferences: documentationResults.length,
+                categories: [...new Set(documentationResults.map(d => d.category))],
+                keyComponents: documentationResults.map(d => d.title).slice(0, 3)
+              } : null,
+              nextSteps: [
+                `Review Langflow documentation for ${normalizedDomain}-specific components`,
+                'Define your data flow and processing requirements',
+                'Identify external integrations needed for your workflow',
+                'Start with a simple prototype and iterate based on testing'
+              ],
+              conversationId: convId
+            },
+            timestamp: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error('Enhanced workflow analysis error:', error);
+          return {
+            message: `Enhanced analysis failed for ${domain} workflow`,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            fallback: 'Using basic workflow analysis instead',
+            conversationId: conversationId || 'error-context',
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "search_langflow_documentation",
+      description: "Search official Langflow documentation for components, concepts, API reference, and tutorials",
+      parameters: [
+        {
+          name: "query",
+          type: "string",
+          description: "Search query for Langflow documentation",
+          required: true,
+        },
+        {
+          name: "category",
+          type: "string",
+          description: "Documentation category to search in (Components, Concepts, API Reference, Tutorials)",
+          required: false,
+        },
+        {
+          name: "maxResults",
+          type: "number",
+          description: "Maximum number of results to return (default: 5)",
+          required: false,
+        },
+        {
+          name: "includeExamples",
+          type: "boolean",
+          description: "Whether to include code examples in results (default: true)",
+          required: false,
+        },
+      ],
+      handler: async ({ query, category, maxResults, includeExamples }: {
+        query: string;
+        category?: string;
+        maxResults?: number;
+        includeExamples?: boolean;
+      }) => {
+        try {
+          const searchOptions = {
+            category,
+            maxResults: maxResults || 5,
+            includeContent: includeExamples !== false
+          };
+
+          // Search Langflow documentation using GitHub API
+          const searchResponse: GitHubDocsResponse = await githubDocsManager.searchDocumentation(query, searchOptions);
+
+          // Format results for better presentation
+          const formattedResults = searchResponse.results.map((result: DocSearchResult) => ({
+            title: result.title,
+            category: result.category,
+            url: result.url,
+            summary: result.content.length > 200 
+              ? result.content.substring(0, 200) + '...' 
+              : result.content,
+            examples: includeExamples !== false ? result.examples : undefined,
+            configurations: result.configurations,
+            relevanceScore: result.relevanceScore
+          }));
+
+          return {
+            message: `Found ${searchResponse.totalResults} documentation result(s) for "${query}"`,
+            query: searchResponse.query,
+            results: formattedResults,
+            totalResults: searchResponse.totalResults,
+            searchTime: `${searchResponse.searchTime}ms`,
+            cached: searchResponse.cached,
+            timestamp: new Date().toISOString(),
+            nextSteps: formattedResults.length > 0 
+              ? "Review the documentation results above. You can click on URLs to view full documentation or ask for more specific information about any component."
+              : "No documentation found for this query. Try using different keywords or check the official Langflow documentation at https://docs.langflow.org"
+          };
+        } catch (error) {
+          console.error('Documentation search error:', error);
+          return {
+            message: `Documentation search failed for "${query}"`,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            fallbackSuggestion: "Please visit https://docs.langflow.org for comprehensive Langflow documentation",
             timestamp: new Date().toISOString()
           };
         }
