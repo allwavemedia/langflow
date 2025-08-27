@@ -6,78 +6,25 @@ import { describe, test, expect } from '@jest/globals';
  */
 describe('Phase 3 Actions Validation', () => {
   test('should validate search_langflow_documentation action structure', () => {
-    // Test action definition structure
-    const expectedSearchAction = {
-      name: 'search_langflow_documentation',
-      description: expect.stringContaining('Search official Langflow documentation'),
-      parameters: expect.arrayContaining([
-        expect.objectContaining({
-          name: 'query',
-          type: 'string',
-          required: true
-        }),
-        expect.objectContaining({
-          name: 'category',
-          type: 'string',
-          required: false
-        }),
-        expect.objectContaining({
-          name: 'maxResults',
-          type: 'number',
-          required: false
-        }),
-        expect.objectContaining({
-          name: 'includeExamples',
-          type: 'boolean',
-          required: false
-        })
-      ]),
-      handler: expect.any(Function)
-    };
-
-    // This validates the structure is correctly defined
-    expect(expectedSearchAction.name).toBe('search_langflow_documentation');
-    expect(Array.isArray(expectedSearchAction.parameters)).toBe(true);
+    // Test action definition structure (basic validation)
+    const actionName = 'search_langflow_documentation';
+    const requiredParams = ['query'];
+    const optionalParams = ['category', 'maxResults', 'includeExamples'];
+    
+    expect(actionName).toBe('search_langflow_documentation');
+    expect(requiredParams.length).toBeGreaterThan(0);
+    expect(optionalParams.length).toBeGreaterThan(0);
   });
 
   test('should validate enhanced_workflow_analysis action structure', () => {
-    // Test enhanced analysis action structure
-    const expectedEnhancedAction = {
-      name: 'enhanced_workflow_analysis',
-      description: expect.stringContaining('Enhanced workflow analysis'),
-      parameters: expect.arrayContaining([
-        expect.objectContaining({
-          name: 'domain',
-          type: 'string',
-          required: true
-        }),
-        expect.objectContaining({
-          name: 'requirements',
-          type: 'string',
-          required: true
-        }),
-        expect.objectContaining({
-          name: 'conversationId',
-          type: 'string',
-          required: false
-        }),
-        expect.objectContaining({
-          name: 'includeDocumentation',
-          type: 'boolean',
-          required: false
-        }),
-        expect.objectContaining({
-          name: 'complexityLevel',
-          type: 'string',
-          required: false
-        })
-      ]),
-      handler: expect.any(Function)
-    };
-
-    // This validates the structure is correctly defined
-    expect(expectedEnhancedAction.name).toBe('enhanced_workflow_analysis');
-    expect(Array.isArray(expectedEnhancedAction.parameters)).toBe(true);
+    // Test enhanced analysis action structure (basic validation)
+    const actionName = 'enhanced_workflow_analysis';
+    const requiredParams = ['domain', 'requirements'];
+    const optionalParams = ['conversationId', 'includeDocumentation', 'complexityLevel'];
+    
+    expect(actionName).toBe('enhanced_workflow_analysis');
+    expect(requiredParams.length).toBeGreaterThan(0);
+    expect(optionalParams.length).toBeGreaterThan(0);
   });
 
   test('should validate GitHub documentation manager exports', () => {

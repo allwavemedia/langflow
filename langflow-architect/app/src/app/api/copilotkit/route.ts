@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEngine";
 import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
 import { searchManager } from "../../../lib/enhanced/searchManager";
-import { githubDocsManager, DocSearchResult, GitHubDocsResponse } from "../../../lib/enhanced/githubDocsManager";
+import { githubDocsManager, DocumentationResult, DocumentationSearchOptions } from "../../../lib/enhanced/githubDocsManager";
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented  
 // import { EnhancedCopilotManager } from "../../../lib/enhanced/EnhancedCopilotManager";
 
@@ -1388,18 +1388,16 @@ const runtime = new CopilotRuntime({
           }
 
           // 4. GitHub documentation grounding (if enabled)
-          let documentationResults: DocSearchResult[] = [];
+          let documentationResults: DocumentationResult[] = [];
           if (includeDocumentation !== false) {
             try {
               // Search for relevant components and concepts
-              const docsResponse = await githubDocsManager.searchDocumentation(
-                `${domain} ${requirements} workflow components`,
-                {
-                  maxResults: 3,
-                  includeContent: true
-                }
-              );
-              documentationResults = docsResponse.results;
+              const docsResponse = await githubDocsManager.searchDocumentation({
+                query: `${domain} ${requirements} workflow components`,
+                maxResults: 3,
+                includeContent: true
+              });
+              documentationResults = docsResponse;
 
               // Search for specific component documentation based on detected technologies
               for (const tech of technologies.slice(0, 2)) { // Limit to avoid too many requests
@@ -1427,24 +1425,32 @@ const runtime = new CopilotRuntime({
 
           // Add components found in documentation
           documentationResults.forEach(doc => {
-            if (doc.title.toLowerCase().includes('component')) {
-              const componentName = doc.title.replace(/\s+/g, '_');
+            if (doc.file.name.toLowerCase().includes('component')) {
+              const componentName = doc.file.name.replace(/\s+/g, '_');
               if (!suggestedComponents.includes(componentName)) {
                 suggestedComponents.push(componentName);
               }
             }
           });
 
+          let workflowPattern: string;
+          if (requirements.toLowerCase().includes('chat')) {
+            workflowPattern = 'conversational-ai';
+          } else if (requirements.toLowerCase().includes('api')) {
+            workflowPattern = 'api-integration';
+          } else {
+            workflowPattern = 'general-purpose';
+          }
+
           const recommendations = {
             domain: normalizedDomain,
             complexity: complexityLevel || contextAnalysis.complexity || 'intermediate',
             confidence: getNormalizedConfidence(contextAnalysis),
             suggestedComponents: suggestedComponents.slice(0, 8),
-            workflowPattern: requirements.toLowerCase().includes('chat') ? 'conversational-ai' : 
-                           requirements.toLowerCase().includes('api') ? 'api-integration' : 'general-purpose',
+            workflowPattern,
             documentationReferences: documentationResults.map(doc => ({
-              title: doc.title,
-              category: doc.category,
+              title: doc.file.name,
+              category: doc.file.path.split('/')[1] || 'general',
               url: doc.url,
               relevance: doc.relevanceScore || 0.5
             })),
@@ -1468,8 +1474,8 @@ const runtime = new CopilotRuntime({
               } : null,
               documentationSupport: documentationResults.length > 0 ? {
                 totalReferences: documentationResults.length,
-                categories: [...new Set(documentationResults.map(d => d.category))],
-                keyComponents: documentationResults.map(d => d.title).slice(0, 3)
+                categories: [...new Set(documentationResults.map(d => d.file.path.split('/')[1] || 'general'))],
+                keyComponents: documentationResults.map(d => d.file.name).slice(0, 3)
               } : null,
               nextSteps: [
                 `Review Langflow documentation for ${normalizedDomain}-specific components`,
@@ -1529,35 +1535,35 @@ const runtime = new CopilotRuntime({
         includeExamples?: boolean;
       }) => {
         try {
-          const searchOptions = {
-            category,
+          const searchOptions: DocumentationSearchOptions = {
+            query,
             maxResults: maxResults || 5,
             includeContent: includeExamples !== false
           };
 
           // Search Langflow documentation using GitHub API
-          const searchResponse: GitHubDocsResponse = await githubDocsManager.searchDocumentation(query, searchOptions);
+          const searchResponse = await githubDocsManager.searchDocumentation(searchOptions);
 
           // Format results for better presentation
-          const formattedResults = searchResponse.results.map((result: DocSearchResult) => ({
-            title: result.title,
-            category: result.category,
+          const formattedResults = searchResponse.map((result: DocumentationResult) => ({
+            title: result.file.name,
+            category: result.file.path.split('/')[1] || category || 'general',
             url: result.url,
             summary: result.content.length > 200 
               ? result.content.substring(0, 200) + '...' 
               : result.content,
-            examples: includeExamples !== false ? result.examples : undefined,
-            configurations: result.configurations,
+            examples: includeExamples !== false ? result.sections.filter(s => s.content.includes('```')) : undefined,
+            configurations: result.sections.filter(s => s.title.toLowerCase().includes('config')),
             relevanceScore: result.relevanceScore
           }));
 
           return {
-            message: `Found ${searchResponse.totalResults} documentation result(s) for "${query}"`,
-            query: searchResponse.query,
+            message: `Found ${searchResponse.length} documentation result(s) for "${query}"`,
+            query: query,
             results: formattedResults,
-            totalResults: searchResponse.totalResults,
-            searchTime: `${searchResponse.searchTime}ms`,
-            cached: searchResponse.cached,
+            totalResults: searchResponse.length,
+            searchTime: '0ms', // GitHub manager doesn't track search time
+            cached: false,
             timestamp: new Date().toISOString(),
             nextSteps: formattedResults.length > 0 
               ? "Review the documentation results above. You can click on URLs to view full documentation or ask for more specific information about any component."
