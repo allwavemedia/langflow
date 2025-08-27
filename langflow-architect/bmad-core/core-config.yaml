@@ -20,3 +20,35 @@ devLoadAlwaysFiles:
 devDebugLog: .ai/debug-log.md
 devStoryLocation: docs/stories
 slashPrefix: BMad
+
+# MCP Tool Integration
+mcpIntegration:
+  enabled: true
+  description: "BMad agents have access to CopilotKit MCP tools through the CopilotKit runtime"
+  availableTools:
+    copilotkit-vibe-coding:
+      name: "CopilotKit Vibe-Coding MCP"
+      description: "Specialized knowledge for CopilotKit best practices, patterns, and integration guidance"
+      endpoint: "https://mcp.copilotkit.ai/sse"
+      capabilities:
+        - "CopilotKit component guidance and hook usage patterns"
+        - "Integration best practices and optimization techniques"
+        - "Performance optimization and troubleshooting support"
+        - "Advanced CopilotKit patterns and architecture recommendations"
+      usage: "Agents can leverage CopilotKit MCP for specialized guidance on CopilotKit implementations"
+      domains: ["copilotkit", "ai", "integration", "development"]
+    microsoft-docs:
+      name: "Microsoft Documentation MCP Server"
+      description: "Access to official Microsoft documentation including Azure, .NET, Microsoft 365"
+      endpoint: "https://mcp.microsoft.com/sse"
+      capabilities:
+        - "Azure documentation and best practices"
+        - "Microsoft 365 integration guidance"
+        - ".NET framework documentation"
+        - "Microsoft technology patterns"
+      usage: "Agents can access Microsoft documentation for enterprise integration guidance"
+      domains: ["microsoft", "azure", "enterprise", "documentation"]
+  agentAccess:
+    method: "copilotkit-actions"
+    description: "All BMad agents operate within CopilotKit environment and can access MCP tools through CopilotKit actions"
+    instructions: "Agents should use CopilotKit-specific requests to leverage MCP tool knowledge when needed"

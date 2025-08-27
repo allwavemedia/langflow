@@ -1,0 +1,48 @@
+{
+  "servers": {
+    "copilotkit-vibe-coding": {
+      "name": "CopilotKit Vibe-Coding MCP",
+      "description": "Specialized MCP server providing CopilotKit best practices, patterns, and integration guidance",
+      "transport": {
+        "type": "sse",
+        "url": "https://mcp.copilotkit.ai/sse"
+      },
+      "domain": "copilotkit",
+      "tags": ["copilotkit", "ai", "integration", "best-practices"],
+      "capabilities": [
+        "CopilotKit component guidance",
+        "Hook usage patterns",
+        "Integration best practices",
+        "Performance optimization",
+        "Troubleshooting support"
+      ],
+      "enabled": true,
+      "priority": 1
+    },
+    "microsoft-docs": {
+      "name": "Microsoft Documentation MCP Server",
+      "description": "Access to official Microsoft documentation including Azure, .NET, Microsoft 365, and other Microsoft technologies",
+      "transport": {
+        "type": "sse",
+        "url": "https://mcp.microsoft.com/sse"
+      },
+      "domain": "microsoft",
+      "tags": ["microsoft", "azure", "documentation", "dotnet", "m365"],
+      "capabilities": [
+        "Azure documentation",
+        "Microsoft 365 guidance",
+        ".NET framework docs",
+        "Microsoft technology best practices"
+      ],
+      "enabled": true,
+      "priority": 2
+    }
+  },
+  "config": {
+    "defaultTimeout": 30000,
+    "maxRetries": 3,
+    "healthCheckInterval": 300000,
+    "enableLogging": true,
+    "logLevel": "info"
+  }
+}

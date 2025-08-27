@@ -142,6 +142,7 @@ dependencies:
     - advanced-elicitation.md
     - create-doc.md
     - kb-mode-interaction.md
+    - use-copilotkit-mcp.md
   utils:
     - workflow-management.md
 ```

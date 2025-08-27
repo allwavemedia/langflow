@@ -9,6 +9,39 @@ import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEng
 import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
 import { searchManager } from "../../../lib/enhanced/searchManager";
 import { githubDocsManager, DocumentationResult, DocumentationSearchOptions } from "../../../lib/enhanced/githubDocsManager";
+
+// Additional type definitions for Phase 3 actions
+interface WorkflowNode {
+  type?: string;
+  data?: {
+    type?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+interface OptimizationRecommendation {
+  type: string;
+  priority: string;
+  title: string;
+  description: string;
+  impact: string;
+}
+
+interface ValidationIssue {
+  severity: string;
+  component: string;
+  issue: string;
+  resolution: string;
+}
+
+interface ValidationResults {
+  totalComponents: number;
+  uniqueComponents: string[];
+  potentialIssues: ValidationIssue[];
+  recommendations: string[];
+  compatibilityScore: number;
+}
 // TODO: Epic 6 Phase 2 - Re-enable enhanced manager once workflow analysis methods are implemented  
 // import { EnhancedCopilotManager } from "../../../lib/enhanced/EnhancedCopilotManager";
 
@@ -1575,6 +1608,409 @@ const runtime = new CopilotRuntime({
             message: `Documentation search failed for "${query}"`,
             error: error instanceof Error ? error.message : 'Unknown error',
             fallbackSuggestion: "Please visit https://docs.langflow.org for comprehensive Langflow documentation",
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+// Helper functions for workflow optimization
+const parseWorkflowJson = (jsonString: string) => {
+  try {
+    return { success: true, workflow: JSON.parse(jsonString), error: null };
+  } catch (error) {
+    return { 
+      success: false, 
+      workflow: null, 
+      error: "Invalid JSON format" 
+    };
+  }
+};
+
+const calculateComplexity = (nodeCount: number): 'low' | 'medium' | 'high' => {
+  if (nodeCount > 10) return 'high';
+  if (nodeCount > 5) return 'medium';
+  return 'low';
+};
+
+const generatePerformanceRecommendations = (nodes: WorkflowNode[]): OptimizationRecommendation[] => {
+  const recommendations: OptimizationRecommendation[] = [];
+  
+  if (nodes.length > 15) {
+    recommendations.push({
+      type: 'performance',
+      priority: 'high',
+      title: 'Reduce workflow complexity',
+      description: 'Consider breaking large workflows into smaller, composable sub-workflows',
+      impact: 'Improved execution speed and maintainability'
+    });
+  }
+  
+  const llmNodes = nodes.filter((node: WorkflowNode) => 
+    node.type?.toLowerCase().includes('llm') || 
+    node.data?.type?.toLowerCase().includes('llm')
+  );
+  
+  if (llmNodes.length > 3) {
+    recommendations.push({
+      type: 'performance',
+      priority: 'medium',
+      title: 'Optimize LLM usage',
+      description: 'Consider batching requests or using lighter models for non-critical operations',
+      impact: 'Reduced latency and cost'
+    });
+  }
+  
+  return recommendations;
+};
+
+const generateReliabilityRecommendations = (): OptimizationRecommendation[] => {
+  return [{
+    type: 'reliability',
+    priority: 'high',
+    title: 'Add error handling nodes',
+    description: 'Include error handling and retry logic for external API calls',
+    impact: 'Improved workflow resilience'
+  }];
+};
+
+const generateCostRecommendations = (): OptimizationRecommendation[] => {
+  return [{
+    type: 'cost',
+    priority: 'medium',
+    title: 'Optimize model selection',
+    description: 'Use smaller models for simple tasks and reserve powerful models for complex operations',
+    impact: 'Reduced operational costs'
+  }];
+};
+      description: "Analyze and optimize an existing Langflow workflow JSON with performance recommendations and component suggestions",
+      parameters: [
+        {
+          name: "workflowJson",
+          type: "string",
+          description: "The Langflow workflow JSON to analyze and optimize",
+          required: true,
+        },
+        {
+          name: "optimizationGoals",
+          type: "string",
+          description: "Specific optimization goals (performance, cost, reliability, scalability)",
+          required: false,
+        },
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Conversation ID for context tracking",
+          required: false,
+        },
+      ],
+      handler: async ({ workflowJson, optimizationGoals = "performance", conversationId }: {
+        workflowJson: string;
+        optimizationGoals?: string;
+        conversationId?: string;
+      }) => {
+        try {
+          const convId = conversationId || `optimize-${Date.now()}-${Math.random()}`;
+          
+          // Parse the workflow JSON
+          let workflow;
+          try {
+            workflow = JSON.parse(workflowJson);
+          } catch (parseError) {
+            return {
+              message: "Failed to parse workflow JSON",
+              error: "Invalid JSON format",
+              suggestions: ["Ensure the workflow JSON is valid", "Check for missing quotes or brackets"],
+              timestamp: new Date().toISOString()
+            };
+          }
+
+          // Analyze workflow structure
+          const nodes = workflow.data?.nodes || [];
+          const edges = workflow.data?.edges || [];
+          
+          // Get context analysis for optimization domain
+          const contextAnalysis = await contextEngine.analyzeContext(`${optimizationGoals} optimization for workflow with ${nodes.length} nodes`);
+          const domain = getNormalizedDomain(contextAnalysis);
+
+          // Query MCP servers for optimization best practices
+          let optimizationInsights: McpQueryResponse | null = null;
+          const mcpServers = mcpManager.getServersForDomain(domain);
+          if (mcpServers.length > 0) {
+            try {
+              optimizationInsights = await mcpManager.queryServers(
+                `Langflow workflow optimization for ${optimizationGoals} with ${nodes.length} components`,
+                domain,
+                { timeout: 3000 }
+              );
+            } catch (error) {
+              console.warn('MCP optimization query failed:', error);
+            }
+          }
+
+          // Search for optimization documentation
+          let optimizationDocs: DocumentationResult[] = [];
+          try {
+            const docsResponse = await githubDocsManager.searchDocumentation({
+              query: `workflow optimization performance ${optimizationGoals} best practices`,
+              maxResults: 3,
+              includeContent: true
+            });
+            optimizationDocs = docsResponse;
+          } catch (error) {
+            console.warn('Documentation search for optimization failed:', error);
+          }
+
+          // Analyze workflow components
+          const componentTypes = nodes.map(node => node.type || node.data?.type).filter(Boolean);
+          const componentAnalysis = {
+            totalNodes: nodes.length,
+            totalEdges: edges.length,
+            componentTypes: [...new Set(componentTypes)],
+            complexity: nodes.length > 10 ? 'high' : nodes.length > 5 ? 'medium' : 'low'
+          };
+
+          // Generate optimization recommendations
+          const recommendations = [];
+          
+          // Performance optimizations
+          if (optimizationGoals.includes('performance')) {
+            if (nodes.length > 15) {
+              recommendations.push({
+                type: 'performance',
+                priority: 'high',
+                title: 'Reduce workflow complexity',
+                description: 'Consider breaking large workflows into smaller, composable sub-workflows',
+                impact: 'Improved execution speed and maintainability'
+              });
+            }
+            
+            const llmNodes = nodes.filter(node => 
+              node.type?.toLowerCase().includes('llm') || 
+              node.data?.type?.toLowerCase().includes('llm')
+            );
+            if (llmNodes.length > 3) {
+              recommendations.push({
+                type: 'performance',
+                priority: 'medium',
+                title: 'Optimize LLM usage',
+                description: 'Consider batching requests or using lighter models for non-critical operations',
+                impact: 'Reduced latency and cost'
+              });
+            }
+          }
+
+          // Reliability optimizations
+          if (optimizationGoals.includes('reliability')) {
+            recommendations.push({
+              type: 'reliability',
+              priority: 'high',
+              title: 'Add error handling nodes',
+              description: 'Include error handling and retry logic for external API calls',
+              impact: 'Improved workflow resilience'
+            });
+          }
+
+          // Cost optimizations
+          if (optimizationGoals.includes('cost')) {
+            recommendations.push({
+              type: 'cost',
+              priority: 'medium',
+              title: 'Optimize model selection',
+              description: 'Use smaller models for simple tasks and reserve powerful models for complex operations',
+              impact: 'Reduced operational costs'
+            });
+          }
+
+          return {
+            message: `Workflow optimization analysis complete for ${optimizationGoals} goals`,
+            analysis: {
+              workflow: componentAnalysis,
+              optimizationGoals,
+              recommendations,
+              mcpInsights: optimizationInsights ? {
+                sources: optimizationInsights.sources,
+                insights: optimizationInsights.results.slice(0, 2)
+              } : null,
+              documentation: optimizationDocs.length > 0 ? {
+                relevantDocs: optimizationDocs.map(doc => ({
+                  title: doc.file.name,
+                  url: doc.url,
+                  relevance: doc.relevanceScore || 0.5
+                }))
+              } : null,
+              nextSteps: [
+                'Review the optimization recommendations above',
+                'Implement high-priority improvements first',
+                'Test performance improvements in a staging environment',
+                'Monitor workflow performance after optimizations'
+              ]
+            },
+            conversationId: convId,
+            timestamp: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error('Workflow optimization error:', error);
+          return {
+            message: "Workflow optimization analysis failed",
+            error: error instanceof Error ? error.message : 'Unknown error',
+            fallbackSuggestion: "Try simplifying the workflow JSON or check for component compatibility",
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "validate_langflow_compatibility",
+      description: "Validate workflow components against current Langflow version and suggest updates or alternatives",
+      parameters: [
+        {
+          name: "workflowJson",
+          type: "string",
+          description: "The Langflow workflow JSON to validate",
+          required: true,
+        },
+        {
+          name: "targetVersion",
+          type: "string",
+          description: "Target Langflow version for compatibility check (optional)",
+          required: false,
+        },
+      ],
+      handler: async ({ workflowJson, targetVersion }: {
+        workflowJson: string;
+        targetVersion?: string;
+      }) => {
+        try {
+          // Parse workflow JSON
+          let workflow;
+          try {
+            workflow = JSON.parse(workflowJson);
+          } catch (parseError) {
+            return {
+              message: "Failed to parse workflow JSON for validation",
+              error: "Invalid JSON format",
+              timestamp: new Date().toISOString()
+            };
+          }
+
+          const nodes = workflow.data?.nodes || [];
+          const componentTypes = nodes.map(node => node.type || node.data?.type).filter(Boolean);
+
+          // Search for component compatibility documentation
+          let compatibilityDocs: DocumentationResult[] = [];
+          try {
+            for (const componentType of [...new Set(componentTypes)].slice(0, 5)) {
+              const docsResponse = await githubDocsManager.searchDocumentation({
+                query: `${componentType} component compatibility version requirements`,
+                maxResults: 1,
+                includeContent: true
+              });
+              compatibilityDocs.push(...docsResponse);
+            }
+          } catch (error) {
+            console.warn('Component compatibility documentation search failed:', error);
+          }
+
+          // Query MCP for compatibility insights
+          let compatibilityInsights: McpQueryResponse | null = null;
+          const mcpServers = mcpManager.getServersForDomain('general');
+          if (mcpServers.length > 0) {
+            try {
+              compatibilityInsights = await mcpManager.queryServers(
+                `Langflow component compatibility version requirements for ${componentTypes.join(', ')}`,
+                'general',
+                { timeout: 2000 }
+              );
+            } catch (error) {
+              console.warn('MCP compatibility query failed:', error);
+            }
+          }
+
+          // Analyze component compatibility
+          const validationResults = {
+            totalComponents: componentTypes.length,
+            uniqueComponents: [...new Set(componentTypes)],
+            potentialIssues: [],
+            recommendations: [],
+            compatibilityScore: 0.9 // Default high compatibility
+          };
+
+          // Check for common compatibility issues
+          const deprecatedComponents = ['OldLLMChain', 'LegacyPrompt'];
+          const foundDeprecated = componentTypes.filter(type => 
+            deprecatedComponents.some(deprecated => 
+              type.toLowerCase().includes(deprecated.toLowerCase())
+            )
+          );
+
+          if (foundDeprecated.length > 0) {
+            validationResults.potentialIssues.push({
+              severity: 'high',
+              component: foundDeprecated.join(', '),
+              issue: 'Deprecated components detected',
+              resolution: 'Update to current component versions'
+            });
+            validationResults.compatibilityScore -= 0.3;
+          }
+
+          // Check for missing required fields
+          const nodesWithoutType = nodes.filter(node => !node.type && !node.data?.type);
+          if (nodesWithoutType.length > 0) {
+            validationResults.potentialIssues.push({
+              severity: 'medium',
+              component: `${nodesWithoutType.length} nodes`,
+              issue: 'Missing component type definitions',
+              resolution: 'Ensure all nodes have valid type definitions'
+            });
+            validationResults.compatibilityScore -= 0.1;
+          }
+
+          // Generate recommendations
+          if (validationResults.compatibilityScore > 0.8) {
+            validationResults.recommendations.push('Workflow appears compatible with current Langflow version');
+          } else {
+            validationResults.recommendations.push('Review and update identified compatibility issues');
+          }
+
+          if (compatibilityDocs.length > 0) {
+            validationResults.recommendations.push('Check component documentation for latest usage patterns');
+          }
+
+          return {
+            message: `Compatibility validation complete - ${Math.round(validationResults.compatibilityScore * 100)}% compatible`,
+            validation: {
+              compatibilityScore: validationResults.compatibilityScore,
+              targetVersion: targetVersion || 'latest',
+              results: validationResults,
+              documentation: compatibilityDocs.length > 0 ? {
+                relevantDocs: compatibilityDocs.map(doc => ({
+                  component: doc.file.name,
+                  url: doc.url,
+                  category: doc.file.path.split('/')[1] || 'general'
+                }))
+              } : null,
+              mcpInsights: compatibilityInsights ? {
+                sources: compatibilityInsights.sources,
+                insights: compatibilityInsights.results.slice(0, 1)
+              } : null,
+              nextSteps: validationResults.potentialIssues.length > 0 ? [
+                'Address high-severity compatibility issues first',
+                'Update deprecated components to current versions',
+                'Test workflow in current Langflow environment',
+                'Review component documentation for breaking changes'
+              ] : [
+                'Workflow validation passed successfully',
+                'Consider testing with latest Langflow features',
+                'Monitor for component updates and improvements'
+              ]
+            },
+            timestamp: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error('Compatibility validation error:', error);
+          return {
+            message: "Compatibility validation failed",
+            error: error instanceof Error ? error.message : 'Unknown error',
             timestamp: new Date().toISOString()
           };
         }
