@@ -4,13 +4,21 @@
 
 This epic builds advanced conversational capabilities using CopilotKit actions, sophisticated question generation through GPT-5 function calling, and intelligent workflow understanding for the standalone application.
 
-**🔄 STATUS: SUPERSEDED BY EPIC 5** - This epic has been superseded by Epic 5: Enhanced Agent Intelligence with Web Search & MCP Integration, which provides comprehensive domain-aware intelligence. The stories below are maintained for reference and gradual migration to the enhanced architecture.
+**🔄 STATUS: SUPERSEDED BY EPIC 5** - This epic has been superseded by Epic 5: Enhanced Agent Intelligence with Web Search & MCP Integration, which provides comprehensive domain-aware intelligence. 
+
+**⚠️ IMPORTANT FOR DEVELOPERS:** Do not implement stories from this epic. Use Epic 5 stories instead. The stories below are maintained for historical reference and to understand the architectural evolution.
+
+**📖 Migration Guide:** See [Epic Consolidation Guide](epic-consolidation-guide.md#migration-strategy-for-existing-stories) for detailed mapping of Epic 2 stories to their Epic 5 equivalents.
 
 ---
 
 ## Story 2.1: CopilotKit Action-Based Category Framework
 
 **As a user**, I want comprehensive workflow categories with detailed options powered by CopilotKit actions, so that I can easily find the perfect starting point for my specific needs.
+
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.1: Context Understanding Engine Implementation](epic-5-enhanced-agent-intelligence.md#story-51-context-understanding-engine-implementation)**. The enhancement replaces the generic category framework with sophisticated domain-specific categorization, technology stack detection, and automatic activation of relevant knowledge bases.
+
+**📖 See Migration Table:** [Epic 2 to Epic 5 Migration](epic-consolidation-guide.md#epic-2-stories---migration-to-epic-5)
 
 ### Acceptance Criteria:
 
@@ -43,6 +51,10 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 **As a user**, I want the agent to ask increasingly specific and contextually relevant questions, so that my workflow requirements become crystal clear through guided discovery.
 
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.6: Advanced Context-Aware Question Generation](epic-5-enhanced-agent-intelligence.md#story-56-advanced-context-aware-question-generation)**. The enhancement upgrades generic question generation to domain-aware, progressive questioning that demonstrates deep expertise, explores multi-dimensional requirements (technical, business, compliance), and provides expert consultation experience.
+
+**📖 See Migration Table:** [Epic 2 to Epic 5 Migration](epic-consolidation-guide.md#epic-2-stories---migration-to-epic-5)
+
 ### Acceptance Criteria:
 
 - **AC1**: Questions become progressively more specific based on previous answers
@@ -73,6 +85,10 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ## Story 2.3: Real-Time Workflow Construction
 
 **As a user**, I want to see my workflow taking shape in real-time as I answer questions, so that I can understand and validate the solution being created.
+
+**🔄 MIGRATION NOTE:** This capability has been integrated into **Enhanced Epic 3** with JSON generation and domain validation. The real-time construction is now powered by domain-aware JSON generation, which includes compliance and security validation, providing a more robust and reliable preview of the workflow.
+
+**📖 See Migration Table:** [Epic 2 to Epic 5 Migration](epic-consolidation-guide.md#epic-2-stories---migration-to-epic-5)
 
 ### Acceptance Criteria:
 
@@ -105,6 +121,10 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 **As a developer**, I want sophisticated conversation context management, so that the agent maintains coherent long conversations and can reference previous decisions effectively.
 
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.1: Context Understanding Engine Implementation](epic-5-enhanced-agent-intelligence.md#story-51-context-understanding-engine-implementation)**. The enhancement replaces simple context management with a sophisticated conversation memory system with MCP integration, providing persistent, domain-aware context.
+
+**📖 See Migration Table:** [Epic 2 to Epic 5 Migration](epic-consolidation-guide.md#epic-2-stories---migration-to-epic-5)
+
 ### Acceptance Criteria:
 
 - **AC1**: Agent remembers and references decisions from earlier in the conversation
@@ -136,6 +156,10 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 **As a user**, I want the agent to adapt its communication style and question complexity to match my technical background, so that I'm neither overwhelmed nor under-challenged.
 
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.4: Enhanced Prompt Engineering with External Context](epic-5-enhanced-agent-intelligence.md#story-54-enhanced-prompt-engineering-with-external-context)**. The enhancement provides dynamic complexity adaptation based on domain and user level, offering more sophisticated and context-aware communication style adjustments.
+
+**📖 See Migration Table:** [Epic 2 to Epic 5 Migration](epic-consolidation-guide.md#epic-2-stories---migration-to-epic-5)
+
 ### Acceptance Criteria:
 
 - **AC1**: Agent detects user's technical expertise level from early responses
@@ -166,6 +190,10 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ## Story 2.6: Decision Point Management
 
 **As a user**, I want clear guidance when multiple valid options exist for my workflow, so that I can make informed decisions or have the agent choose the best option for me.
+
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.6: Advanced Context-Aware Question Generation](epic-5-enhanced-agent-intelligence.md#story-56-advanced-context-aware-question-generation)**. The enhancement provides multi-option exploration with compliance considerations, offering comprehensive decision support with domain-aware analysis.
+
+**📖 See Migration Table:** [Epic 2 to Epic 5 Migration](epic-consolidation-guide.md#epic-2-stories---migration-to-epic-5)
 
 ### Acceptance Criteria:
 
