@@ -1,0 +1,407 @@
+// Enhanced Copilot Manager for Epic 6: User-Friendly MCP Server Integration
+// Integrates MCP servers with CopilotKit for intelligent assistance
+
+import { CopilotRuntime } from '@copilotkit/runtime';
+import type { 
+  McpServerHealth 
+} from '@/types/mcp';
+import { McpServerConfig } from './mcpManager';
+import { contextEngine } from './contextEngine';
+import { mcpManager } from './mcpManager';
+import { mcpConfigService } from '@/services/mcpConfigService';
+import { convertToMcpEndpointConfig, generateMcpToolInstructions } from './mcpToolUtils';
+
+export interface CopilotAction {
+  name: string;
+  description: string;
+  parameters?: Record<string, unknown>;
+  handler: (args: Record<string, unknown>) => Promise<unknown>;
+}
+
+export interface EnhancedCopilotConfig {
+  enableMcpIntegration: boolean;
+  autoLoadServers: boolean;
+  contextAwareness: boolean;
+  enableHealthMonitoring: boolean;
+  maxConcurrentRequests: number;
+}
+
+export class EnhancedCopilotManager {
+  private runtime: CopilotRuntime;
+  private config: EnhancedCopilotConfig;
+  private actions: Map<string, CopilotAction> = new Map();
+  private requestQueue: Array<{ id: string; request: unknown; timestamp: Date }> = [];
+
+  constructor(runtime: CopilotRuntime, config?: Partial<EnhancedCopilotConfig>) {
+    this.runtime = runtime;
+    this.config = {
+      enableMcpIntegration: true,
+      autoLoadServers: true,
+      contextAwareness: true,
+      enableHealthMonitoring: true,
+      maxConcurrentRequests: 10,
+      ...config
+    };
+
+    this.initializeActions();
+    if (this.config.autoLoadServers) {
+      this.loadMcpServers();
+    }
+  }
+
+  private initializeActions(): void {
+    // Register core MCP management actions
+    this.registerAction({
+      name: 'manage_mcp_servers',
+      description: 'Manage MCP servers: list, add, remove, toggle, or test connections',
+      parameters: {
+        action: { type: 'string', enum: ['list', 'add', 'remove', 'toggle', 'test'] },
+        serverId: { type: 'string', optional: true },
+        serverConfig: { type: 'object', optional: true }
+      },
+      handler: this.handleMcpServerManagement.bind(this)
+    });
+
+    this.registerAction({
+      name: 'search_context',
+      description: 'Search across all available context sources including MCP servers',
+      parameters: {
+        query: { type: 'string' },
+        sources: { type: 'array', optional: true },
+        maxResults: { type: 'number', optional: true }
+      },
+      handler: this.handleContextSearch.bind(this)
+    });
+
+    this.registerAction({
+      name: 'health_check',
+      description: 'Check the health status of all MCP servers',
+      handler: this.handleHealthCheck.bind(this)
+    });
+
+    this.registerAction({
+      name: 'get_server_capabilities',
+      description: 'Get capabilities of a specific MCP server',
+      parameters: {
+        serverId: { type: 'string' }
+      },
+      handler: this.handleGetCapabilities.bind(this)
+    });
+  }
+
+  // Action Management
+  registerAction(action: CopilotAction): void {
+    this.actions.set(action.name, action);
+  }
+
+  unregisterAction(name: string): void {
+    this.actions.delete(name);
+  }
+
+  // MCP Server Management Actions
+  private async handleMcpServerManagement(args: Record<string, unknown>): Promise<unknown> {
+    const { action, serverId, serverConfig } = args;
+
+    try {
+      switch (action) {
+        case 'list':
+          return await this.listMcpServers();
+        
+        case 'add':
+          if (!serverConfig) {
+            throw new Error('Server configuration required for add action');
+          }
+          return await this.addMcpServer(serverConfig as McpServerConfig);
+        
+        case 'remove':
+          if (!serverId || typeof serverId !== 'string') {
+            throw new Error('Server ID required for remove action');
+          }
+          return await this.removeMcpServer(serverId);
+        
+        case 'toggle':
+          if (!serverId || typeof serverId !== 'string') {
+            throw new Error('Server ID required for toggle action');
+          }
+          return await this.toggleMcpServer(serverId);
+        
+        case 'test':
+          if (!serverId || typeof serverId !== 'string') {
+            throw new Error('Server ID required for test action');
+          }
+          return await this.testMcpServer(serverId);
+        
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  private async listMcpServers(): Promise<{ servers: McpServerConfig[]; count: number }> {
+    // Use the enhanced mcpManager for server listing
+    const servers = mcpManager.getAllServers();
+    return {
+      servers: servers,
+      count: servers.length
+    };
+  }
+
+  private async addMcpServer(serverConfig: McpServerConfig): Promise<{ success: boolean; message: string }> {
+    try {
+      await mcpManager.registerServer(serverConfig);
+      // TODO: Phase 2 - Add context tracking when contextEngine supports MCP server registration
+      
+      return {
+        success: true,
+        message: `Successfully added MCP server: ${serverConfig.name}`
+      };
+    } catch (error) {
+      throw new Error(`Failed to add server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async removeMcpServer(serverId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const removed = mcpManager.removeServer(serverId);
+      // TODO: Phase 2 - Add context tracking when contextEngine supports MCP server removal
+      
+      if (removed) {
+        return {
+          success: true,
+          message: `Successfully removed MCP server: ${serverId}`
+        };
+      } else {
+        return {
+          success: false,
+          message: `Failed to remove MCP server: ${serverId} (server not found or system server)`
+        };
+      }
+    } catch (error) {
+      throw new Error(`Failed to remove server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async toggleMcpServer(serverId: string): Promise<{ success: boolean; enabled: boolean; message: string }> {
+    try {
+      await mcpManager.toggleServer(serverId);
+      const connection = mcpManager.getServerStatus(serverId);
+      
+      return {
+        success: true,
+        enabled: connection?.server.enabled || false,
+        message: `Successfully toggled MCP server: ${serverId}`
+      };
+    } catch (error) {
+      throw new Error(`Failed to toggle server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async testMcpServer(serverId: string): Promise<{ success: boolean; result?: unknown; error?: string }> {
+    try {
+      const connection = mcpManager.getServerStatus(serverId);
+      if (!connection) {
+        throw new Error('Server not found');
+      }
+
+      await mcpManager.connectServer(serverId);
+      
+      return {
+        success: true,
+        result: {
+          status: connection.status,
+          capabilities: connection.capabilities,
+          lastActivity: connection.lastActivity
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Test failed'
+      };
+    }
+  }
+
+  // Context Search Action
+  private async handleContextSearch(args: Record<string, unknown>): Promise<unknown> {
+    const { query, sources, maxResults } = args;
+
+    if (!query || typeof query !== 'string') {
+      throw new Error('Query parameter is required and must be a string');
+    }
+
+    try {
+      const results = await contextEngine.query({
+        query,
+        sources: Array.isArray(sources) ? sources as string[] : undefined,
+        maxResults: typeof maxResults === 'number' ? maxResults : 10
+      });
+
+      return {
+        success: true,
+        results: results.map(result => ({
+          id: result.id,
+          source: result.source.name,
+          relevance: result.relevanceScore,
+          content: result.content.substring(0, 500), // Truncate for display
+          type: result.source.type
+        })),
+        count: results.length
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Search failed'
+      };
+    }
+  }
+
+  // Health Check Action
+  private async handleHealthCheck(): Promise<{ success: boolean; results: McpServerHealth[] }> {
+    try {
+      const results = await mcpManager.performHealthCheck();
+      return {
+        success: true,
+        results
+      };
+    } catch (error) {
+      return {
+        success: false,
+        results: []
+      };
+    }
+  }
+
+  // Get Capabilities Action
+  private async handleGetCapabilities(args: Record<string, unknown>): Promise<unknown> {
+    const { serverId } = args;
+
+    if (!serverId || typeof serverId !== 'string') {
+      throw new Error('Server ID is required');
+    }
+
+    try {
+      const capabilities = mcpManager.getServerCapabilities(serverId);
+      const connection = mcpManager.getServerStatus(serverId);
+
+      return {
+        success: true,
+        serverId,
+        capabilities,
+        status: connection?.status || 'unknown',
+        lastActivity: connection?.lastActivity
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get capabilities'
+      };
+    }
+  }
+
+  // Server Loading and Initialization
+  private async loadMcpServers(): Promise<void> {
+    try {
+      const config = await mcpConfigService.loadFullConfig();
+      
+      for (const server of config.servers) {
+        try {
+          await mcpManager.addServer(server);
+          contextEngine.addMcpServer(server);
+        } catch (error) {
+          console.error(`Failed to load server ${server.name}:`, error);
+        }
+      }
+
+      console.log(`Loaded ${config.servers.length} MCP servers`);
+    } catch (error) {
+      console.error('Failed to load MCP servers:', error);
+    }
+  }
+
+  // Request Management
+  async processRequest(request: unknown): Promise<unknown> {
+    const requestId = crypto.randomUUID();
+    const timestamp = new Date();
+
+    // Add to queue if needed
+    if (this.requestQueue.length >= this.config.maxConcurrentRequests) {
+      this.requestQueue.push({ id: requestId, request, timestamp });
+      return { queued: true, requestId, position: this.requestQueue.length };
+    }
+
+    try {
+      // Process request with context awareness
+      if (this.config.contextAwareness) {
+        // Add context enrichment here
+        return await this.processWithContext(request);
+      } else {
+        return await this.processBasic(request);
+      }
+    } catch (error) {
+      console.error('Request processing failed:', error);
+      throw error;
+    }
+  }
+
+  private async processWithContext(request: unknown): Promise<unknown> {
+    // This would integrate with the context engine to provide relevant context
+    // For now, just pass through to basic processing
+    return await this.processBasic(request);
+  }
+
+  private async processBasic(request: unknown): Promise<unknown> {
+    // Basic request processing without context enhancement
+    return request;
+  }
+
+  // Configuration Management
+  updateConfig(newConfig: Partial<EnhancedCopilotConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+    
+    if (newConfig.autoLoadServers && !this.config.autoLoadServers) {
+      this.loadMcpServers();
+    }
+  }
+
+  getConfig(): EnhancedCopilotConfig {
+    return { ...this.config };
+  }
+
+  // Status and Information
+  getStatus(): {
+    activeServers: number;
+    totalServers: number;
+    queuedRequests: number;
+    config: EnhancedCopilotConfig;
+  } {
+    const activeConnections = mcpManager.getActiveConnections();
+    const allConnections = mcpManager.getAllConnections();
+
+    return {
+      activeServers: activeConnections.length,
+      totalServers: allConnections.length,
+      queuedRequests: this.requestQueue.length,
+      config: this.config
+    };
+  }
+
+  // Cleanup
+  destroy(): void {
+    this.actions.clear();
+    this.requestQueue = [];
+    mcpManager.destroy();
+  }
+}
+
+// Factory function for creating enhanced copilot manager
+export function createEnhancedCopilotManager(
+  runtime: CopilotRuntime, 
+  config?: Partial<EnhancedCopilotConfig>
+): EnhancedCopilotManager {
+  return new EnhancedCopilotManager(runtime, config);
+}
