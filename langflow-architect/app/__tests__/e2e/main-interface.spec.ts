@@ -62,7 +62,7 @@ test.describe('Socratic Langflow Architect - E2E Tests', () => {
     await expect(orderedList).toBeVisible()
     
     // Check for proper semantic elements
-    const mainContent = page.locator('main, [role="main"]')
+    const _mainContent = page.locator('main, [role="main"]')
     // Note: If no main element exists, the test will still pass as we're checking overall structure
   })
 

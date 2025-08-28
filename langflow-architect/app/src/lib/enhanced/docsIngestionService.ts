@@ -1,15 +1,15 @@
 // DocsIngestionService - Phase 2: Documentation grounding and schema compliance
 // Implements Langflow docs ingestion client (GitHub API) + cache with ETag/versioning
 
-interface GitHubApiResponse {
-  content: string;
-  sha: string;
-  url: string;
-  html_url: string;
-  download_url: string;
-  encoding: string;
-}
-
+// interface GitHubApiResponse {
+//   content: string;
+//   sha: string;
+//   url: string;
+//   html_url: string;
+//   download_url: string;
+//   encoding: string;
+// }
+// 
 interface CachedDocument {
   content: string;
   etag: string;
@@ -248,7 +248,7 @@ export class DocsIngestionService {
   }
 
   // Webhook endpoint support for real-time updates
-  async handleWebhookUpdate(payload: any): Promise<boolean> {
+  async handleWebhookUpdate(payload: unknown): Promise<boolean> {
     if (!this.enableWebhook) {
       return false;
     }
@@ -256,7 +256,7 @@ export class DocsIngestionService {
     try {
       // GitHub webhook payload processing
       if (payload.commits) {
-        const docsChanges = payload.commits.some((commit: any) => 
+        const docsChanges = payload.commits.some((commit: unknown) => 
           commit.modified?.some((file: string) => file.startsWith('docs/docs/')) ||
           commit.added?.some((file: string) => file.startsWith('docs/docs/')) ||
           commit.removed?.some((file: string) => file.startsWith('docs/docs/'))

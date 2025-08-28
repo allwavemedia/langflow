@@ -68,7 +68,7 @@ export const KnowledgeAttribution: React.FC<KnowledgeAttributionProps> = ({
 
       {isExpanded && (
         <div className="mt-3 space-y-2">
-          {sources.map((source, index) => (
+          {sources.map((source) => (
             <div 
               key={source.id} 
               className="flex items-start space-x-3 p-2 bg-white rounded border"

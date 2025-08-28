@@ -7,7 +7,7 @@ import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEngine";
 import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
-import { docsIngestionService } from "../../../lib/enhanced/docsIngestionService";
+// import { docsIngestionService } from "../../../lib/enhanced/docsIngestionService";
 import { langflowSchemaRegistry } from "../../../lib/enhanced/langflowSchemaRegistry";
 import { searchManager } from "../../../lib/enhanced/searchManager";
 import { docsMcpServer } from "../../../lib/enhanced/docsMcpServer";
@@ -18,9 +18,9 @@ interface WorkflowNode {
   type?: string;
   data?: {
     type?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OptimizationRecommendation {
@@ -99,10 +99,10 @@ function getNormalizedTechnologies(contextAnalysis: ContextLike | null): string[
 }
 
 // Helper functions for workflow optimization
-const parseWorkflowJson = (jsonString: string) => {
+const _parseWorkflowJson = (jsonString: string) => {
   try {
     return { success: true, workflow: JSON.parse(jsonString), error: null };
-  } catch (error) {
+  } catch {
     return { 
       success: false, 
       workflow: null, 
@@ -261,7 +261,7 @@ async function handleContextUpdate(conversationId: string, contextData: string, 
       message: `Context updated successfully using ${mergeStrategy} strategy`,
       timestamp: new Date().toISOString()
     };
-  } catch (parseError) {
+  } catch {
     return {
       action: 'update',
       conversationId,
@@ -300,7 +300,7 @@ async function handleContextAnalyze(conversationId: string) {
         domain,
         { timeout: 2000 }
       );
-    } catch (error) {
+    } catch {
       console.warn('MCP analysis query failed:', error);
     }
   }
@@ -417,7 +417,7 @@ const runtime = new CopilotRuntime({
             followUp: ["Phase 2 will provide domain-specific expert questions"],
             context: { domain, complexity }
           };          return enhancedResult;
-        } catch (error) {
+        } catch {
           console.error('Enhanced workflow analysis error:', error);
           
           // Fallback to contextEngine approach if enhanced features fail
@@ -441,7 +441,7 @@ const runtime = new CopilotRuntime({
                   { timeout: 3000 }
                 );
                 mcpKnowledge = mcpResults;
-              } catch (error) {
+              } catch {
                 console.warn('MCP query failed, continuing with local knowledge:', error);
               }
             }
@@ -627,7 +627,7 @@ const runtime = new CopilotRuntime({
               if (docsResponse.success) {
                 documentationContext = docsResponse.data;
               }
-            } catch (error) {
+            } catch {
               console.warn('Documentation grounding failed:', error);
             }
           }
@@ -652,7 +652,7 @@ const runtime = new CopilotRuntime({
                   attribution: searchResult.attribution
                 };
               }
-            } catch (error) {
+            } catch {
               console.warn('Web search failed:', error);
             }
           }
@@ -727,7 +727,7 @@ const runtime = new CopilotRuntime({
           console.log('Phase 2: Enhanced workflow analysis completed successfully');
           return response;
 
-        } catch (error) {
+        } catch {
           console.error('Phase 2: Enhanced workflow analysis error:', error);
           
           // Fallback to Phase 1 analysis
@@ -797,7 +797,7 @@ const runtime = new CopilotRuntime({
           };
 
           return enhancedResult;
-        } catch (error) {
+        } catch {
           console.error('Enhanced question generation error:', error);
           
           // Fallback to contextEngine approach
@@ -836,7 +836,7 @@ const runtime = new CopilotRuntime({
                     { timeout: 2000 }
                   );
                   domainKnowledge = mcpResults;
-                } catch (error) {
+                } catch {
                   console.warn('MCP query for questions failed:', error);
                 }
               }
@@ -1173,7 +1173,7 @@ const runtime = new CopilotRuntime({
           let validationResult = null;
           try {
             validationResult = langflowSchemaRegistry.validateWorkflow(langflowTemplate);
-          } catch (error) {
+          } catch {
             console.warn('Schema validation failed:', error);
           }
 
@@ -1191,7 +1191,7 @@ const runtime = new CopilotRuntime({
               ? "Workflow validates successfully! You can download this JSON file and import it into Langflow."
               : "You can download this JSON file and import it into Langflow for further customization. Note: Some validation warnings may need attention."
           };
-        } catch (error) {
+        } catch {
           console.error('Workflow generation error:', error);
           return {
             error: "Failed to generate workflow",
@@ -1335,7 +1335,7 @@ const runtime = new CopilotRuntime({
             default:
               return { error: `Unknown action: ${action}` };
           }
-        } catch (error) {
+        } catch {
           return {
             action,
             success: false,
@@ -1396,7 +1396,7 @@ const runtime = new CopilotRuntime({
             cached: searchResponse.cached,
             timestamp: new Date().toISOString()
           };
-        } catch (error) {
+        } catch {
           console.error('Web search error:', error);
           return {
             query,
@@ -1479,7 +1479,7 @@ const runtime = new CopilotRuntime({
                   previousContext: contextEngine.getContext(conversationId),
                   timestamp: new Date().toISOString()
                 };
-              } catch (error) {
+              } catch {
                 return {
                   action: 'clear',
                   conversationId,
@@ -1560,7 +1560,7 @@ const runtime = new CopilotRuntime({
                   message: 'Context merged successfully',
                   timestamp: new Date().toISOString()
                 };
-              } catch (error) {
+              } catch {
                 return {
                   action: 'merge',
                   conversationId,
@@ -1582,7 +1582,7 @@ const runtime = new CopilotRuntime({
                 timestamp: new Date().toISOString()
               };
           }
-        } catch (error) {
+        } catch {
           console.error('Conversation context management error:', error);
           return {
             action,
@@ -1614,7 +1614,7 @@ const runtime = new CopilotRuntime({
             statistics: stats,
             timestamp: new Date().toISOString()
           };
-        } catch (error) {
+        } catch {
           console.error('Error getting enhancement statistics:', error);
           return {
             message: "Unable to retrieve enhancement statistics",
@@ -1692,7 +1692,7 @@ const runtime = new CopilotRuntime({
                 normalizedDomain,
                 { timeout: 3000 }
               );
-            } catch (error) {
+            } catch {
               console.warn('MCP query failed during enhanced analysis:', error);
             }
           }
@@ -1714,7 +1714,7 @@ const runtime = new CopilotRuntime({
                 const techDocs = await githubDocsManager.getComponentDocumentation(tech);
                 documentationResults.push(...techDocs.slice(0, 1)); // Add one result per technology
               }
-            } catch (error) {
+            } catch {
               console.warn('Documentation search failed during enhanced analysis:', error);
             }
           }
@@ -1797,7 +1797,7 @@ const runtime = new CopilotRuntime({
             },
             timestamp: new Date().toISOString()
           };
-        } catch (error) {
+        } catch {
           console.error('Enhanced workflow analysis error:', error);
           return {
             message: `Enhanced analysis failed for ${domain} workflow`,
@@ -1879,7 +1879,7 @@ const runtime = new CopilotRuntime({
               ? "Review the documentation results above. You can click on URLs to view full documentation or ask for more specific information about any component."
               : "No documentation found for this query. Try using different keywords or check the official Langflow documentation at https://docs.langflow.org"
           };
-        } catch (error) {
+        } catch {
           console.error('Documentation search error:', error);
           return {
             message: `Documentation search failed for "${query}"`,
@@ -1925,7 +1925,7 @@ const runtime = new CopilotRuntime({
           let workflow;
           try {
             workflow = JSON.parse(workflowJson);
-          } catch (parseError) {
+          } catch {
             return {
               message: "Failed to parse workflow JSON",
               error: "Invalid JSON format",
@@ -1952,7 +1952,7 @@ const runtime = new CopilotRuntime({
                 domain,
                 { timeout: 3000 }
               );
-            } catch (error) {
+            } catch {
               console.warn('MCP optimization query failed:', error);
             }
           }
@@ -1966,7 +1966,7 @@ const runtime = new CopilotRuntime({
               includeContent: true
             });
             optimizationDocs = docsResponse;
-          } catch (error) {
+          } catch {
             console.warn('Documentation search for optimization failed:', error);
           }
 
@@ -2038,7 +2038,7 @@ const runtime = new CopilotRuntime({
             conversationId: convId,
             timestamp: new Date().toISOString()
           };
-        } catch (error) {
+        } catch {
           console.error('Workflow optimization error:', error);
           return {
             message: "Workflow optimization analysis failed",
@@ -2075,7 +2075,7 @@ const runtime = new CopilotRuntime({
           let workflow;
           try {
             workflow = JSON.parse(workflowJson);
-          } catch (parseError) {
+          } catch {
             return {
               message: "Failed to parse workflow JSON for validation",
               error: "Invalid JSON format",
@@ -2097,7 +2097,7 @@ const runtime = new CopilotRuntime({
               });
               compatibilityDocs.push(...docsResponse);
             }
-          } catch (error) {
+          } catch {
             console.warn('Component compatibility documentation search failed:', error);
           }
 
@@ -2111,7 +2111,7 @@ const runtime = new CopilotRuntime({
                 'general',
                 { timeout: 2000 }
               );
-            } catch (error) {
+            } catch {
               console.warn('MCP compatibility query failed:', error);
             }
           }
@@ -2196,7 +2196,7 @@ const runtime = new CopilotRuntime({
             },
             timestamp: new Date().toISOString()
           };
-        } catch (error) {
+        } catch {
           console.error('Compatibility validation error:', error);
           return {
             message: "Compatibility validation failed",
