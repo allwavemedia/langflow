@@ -9,7 +9,7 @@ interface SearchResult {
   score: number;
   timestamp: Date;
   domain: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   relevanceScore?: number;
 }
 
@@ -23,14 +23,14 @@ interface SearchOptions {
   timeout?: number;
 }
 
-interface SearchResponse {
-  results: SearchResult[];
-  query: string;
-  totalResults: number;
-  searchTime: number;
-  source: 'tavily' | 'duckduckgo' | 'fallback';
-  cached: boolean;
-}
+// interface SearchResponse {
+//   results: SearchResult[];
+//   query: string;
+//   totalResults: number;
+//   searchTime: number;
+//   source: 'tavily' | 'duckduckgo' | 'fallback';
+//   cached: boolean;
+// }
 
 interface SearchMetrics {
   totalQueries: number;
@@ -124,7 +124,7 @@ export class SearchManager {
 
       const searchResults = await Promise.allSettled(searchPromises);
       
-      let allResults: SearchResult[] = [];
+      const allResults: SearchResult[] = [];
       
       for (const result of searchResults) {
         if (result.status === 'fulfilled') {
@@ -463,15 +463,15 @@ export class SearchManager {
     try {
       const stored = localStorage.getItem('search-cache');
       if (stored) {
-        const cacheData: Array<[string, any]> = JSON.parse(stored);
+        const cacheData: Array<[string, unknown]> = JSON.parse(stored);
         this.cache = new Map(cacheData.map(([key, value]) => [
           key,
           {
-            ...value,
-            timestamp: new Date(value.timestamp),
-            results: value.results.map((r: any) => ({
-              ...r,
-              timestamp: new Date(r.timestamp)
+            ...(value as Record<string, unknown>),
+            timestamp: new Date((value as { timestamp: string }).timestamp),
+            results: (value as { results: unknown[] }).results.map((r: unknown) => ({
+              ...(r as Record<string, unknown>),
+              timestamp: new Date((r as { timestamp: string }).timestamp)
             }))
           }
         ]));
