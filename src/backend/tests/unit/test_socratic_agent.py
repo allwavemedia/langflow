@@ -3,10 +3,11 @@
 import pytest
 import json
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 from langflow.agent.state_manager import StateManager, WorkflowStage
 from langflow.agent.controller import SocraticController
+from langflow.agent.socratic_engine import SocraticEngine
 
 
 class TestStateManager:
@@ -240,5 +241,152 @@ class TestSocraticController:
         assert controller.state_manager.get_conversation_history() == []
 
 
-if __name__ == "__main__":
+class TestSocraticEngine:
+    """Test cases for SocraticEngine class with domain discovery."""
+    
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.engine = SocraticEngine()
+    
+    def test_initialization(self):
+        """Test SocraticEngine initializes correctly."""
+        assert hasattr(self.engine, 'question_history')
+        assert hasattr(self.engine, 'domain_context_cache')
+        assert len(self.engine.question_history) == 0
+        assert len(self.engine.domain_context_cache) == 0
+    
+    def test_traditional_question_generation(self):
+        """Test traditional question generation still works."""
+        # Test initial question generation
+        question = self.engine.generate_initial_question("chatbot")
+        assert isinstance(question, str)
+        assert len(question) > 0
+        assert len(self.engine.question_history) == 1
+        
+        # Test clarifying question generation
+        parsed_response = {
+            "identified_concepts": ["business"],
+            "complexity": "medium"
+        }
+        clarifying_question = self.engine.generate_clarifying_question(
+            parsed_response, [], "chatbot"
+        )
+        assert isinstance(clarifying_question, str)
+        assert len(clarifying_question) > 0
+    
+    @pytest.mark.asyncio
+    async def test_generate_dynamic_question_healthcare(self):
+        """Test dynamic question generation for healthcare context."""
+        user_input = "I need to build a workflow for processing patient medical records with HIPAA compliance"
+        session_id = "test_session_healthcare"
+        
+        question = await self.engine.generate_dynamic_question(user_input, session_id)
+        
+        assert isinstance(question, str)
+        assert len(question) > 0
+        assert len(self.engine.question_history) > 0
+        
+        # Check that the question is healthcare-aware
+        question_lower = question.lower()
+        healthcare_terms = ["healthcare", "patient", "medical", "hipaa", "clinical", "data", "workflow"]
+        assert any(term in question_lower for term in healthcare_terms)
+    
+    @pytest.mark.asyncio
+    async def test_generate_dynamic_question_finance(self):
+        """Test dynamic question generation for finance context."""
+        user_input = "I want to create a trading system that processes financial transactions"
+        session_id = "test_session_finance"
+        
+        question = await self.engine.generate_dynamic_question(user_input, session_id)
+        
+        assert isinstance(question, str)
+        assert len(question) > 0
+        
+        # Check that the question is finance-aware
+        question_lower = question.lower()
+        finance_terms = ["financial", "trading", "transaction", "regulatory", "compliance", "data", "system"]
+        assert any(term in question_lower for term in finance_terms)
+    
+    @pytest.mark.asyncio
+    async def test_get_domain_insights_with_active_context(self):
+        """Test getting domain insights when context is active."""
+        session_id = "test_session_insights"
+        
+        # First generate a dynamic question to create context
+        await self.engine.generate_dynamic_question(
+            "I need healthcare workflow with HIPAA compliance", session_id
+        )
+        
+        # Get domain insights
+        insights = await self.engine.get_domain_insights(session_id)
+        
+        assert insights is not None
+        assert isinstance(insights, dict)
+        assert "domain" in insights
+        assert "confidence" in insights
+        assert "expertise_level" in insights
+        assert "recommendations" in insights
+        assert insights["domain"] == "healthcare"
+        assert insights["confidence"] > 0
+    
+    @pytest.mark.asyncio
+    async def test_get_domain_insights_no_context(self):
+        """Test getting domain insights when no context exists."""
+        session_id = "test_session_no_context"
+        
+        insights = await self.engine.get_domain_insights(session_id)
+        
+        assert insights is None
+    
+    @pytest.mark.asyncio
+    async def test_switch_domain_context(self):
+        """Test switching domain context for a session."""
+        session_id = "test_session_switch"
+        
+        # Start with healthcare
+        await self.engine.generate_dynamic_question(
+            "I need healthcare workflow with HIPAA", session_id
+        )
+        
+        # Switch to finance
+        switch_result = await self.engine.switch_domain_context(
+            "Now I need financial trading system", session_id
+        )
+        
+        assert isinstance(switch_result, dict)
+        assert switch_result["success"] is True
+        assert switch_result["new_domain"] == "finance"
+        assert switch_result["previous_domain"] == "healthcare"
+        assert "recommendations_count" in switch_result
+    
+    def test_parse_user_response(self):
+        """Test parsing user response still works correctly."""
+        user_input = "I need a business chatbot with real-time capabilities"
+        
+        parsed = self.engine.parse_user_response(user_input)
+        
+        assert isinstance(parsed, dict)
+        assert "original_input" in parsed
+        assert "identified_concepts" in parsed
+        assert "entities" in parsed
+        assert "complexity" in parsed
+        assert "word_count" in parsed
+        assert parsed["original_input"] == user_input
+        assert parsed["word_count"] == len(user_input.split())
+    
+    def test_reset_functionality(self):
+        """Test reset functionality."""
+        # Add some history and cache
+        self.engine.question_history.append({"test": "data"})
+        self.engine.domain_context_cache["test"] = "context"
+        
+        # Reset
+        self.engine.reset()
+        
+        # Check that history is cleared but cache is preserved
+        assert len(self.engine.question_history) == 0
+        # Cache should be preserved across resets for session continuity
+        assert "test" in self.engine.domain_context_cache
+
+
     pytest.main([__file__])
