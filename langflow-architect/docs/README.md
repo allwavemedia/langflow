@@ -51,6 +51,10 @@ langflow-architect/
 
 ## Key Documentation Files
 
+### 📋 Latest Updates
+- **Development Progress Summary**: See [Completion Summary](completion-summary-langflow-architect-development.md) for validation of all completed enhancement work
+- **Current Status**: See [Development Status and Next Steps](guides/development-status-and-next-steps.md) for implementation guidance
+
 ### Primary Architecture
   - Complete technical architecture for web search and MCP integration
   - Brownfield enhancement approach maintaining existing CopilotKit foundation
