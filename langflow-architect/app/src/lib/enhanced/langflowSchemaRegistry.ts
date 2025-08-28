@@ -50,6 +50,7 @@ interface LangflowWorkflowSchema {
         nodes: any;
         edges: any;
       };
+      required: string[];
     };
     description: any;
     name: any;
