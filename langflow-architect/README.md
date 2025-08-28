@@ -98,6 +98,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - **[Technical Architecture](./docs/architecture/variants/standalone.md)**: CopilotKit-based architecture design
 - **[Implementation Roadmap](./docs/implementation-roadmap.md)**: 16-week development timeline
 - **[User Stories](./docs/stories/)**: Detailed epic breakdown with acceptance criteria
+- **[Development Status](./docs/status/current-status-summary.md)**: Current progress and BMad integration
+- **[Completion Summary](../completion-summary-langflow-architect-development.md)**: Comprehensive validation of all completed work
 
 ## BMad Method Integration
 
