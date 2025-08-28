@@ -36,6 +36,13 @@ This epic develops comprehensive workflow generation with validation, preview, e
 - [ ] Component optimization verified through testing
 - [ ] Error handling components properly integrated
 
+### Testing
+- **Test Framework**: Jest
+- **Test Location**: `src/lib/json-generation/__tests__/engine.test.ts`
+- **Reference**: `docs/component-placement-guidelines.md#client-side-utilities`
+- **Test Coverage**: Schema validation, support for complex structures, component optimization logic, connection mapping.
+- **Integration Tests**: Langflow schema validation library integration.
+
 ---
 
 ## Story 3.2: Real-Time JSON Preview
@@ -67,6 +74,13 @@ This epic develops comprehensive workflow generation with validation, preview, e
 - [ ] Expand/collapse functionality complete
 - [ ] Annotation system providing helpful explanations
 - [ ] Copy functionality and validation indicators working
+
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/features/preview/__tests__/JsonPreview.test.tsx`
+- **Reference**: `docs/component-placement-guidelines.md#feature-specific-components`
+- **Test Coverage**: Real-time updates, syntax highlighting, tree view functionality, annotations, copy-to-clipboard.
+- **Integration Tests**: Real-time data synchronization with the JSON generation engine.
 
 ---
 
@@ -100,6 +114,13 @@ This epic develops comprehensive workflow generation with validation, preview, e
 - [ ] Troubleshooting guides helpful and complete
 - [ ] Batch export functionality verified
 
+### Testing
+- **Test Framework**: Jest with Playwright
+- **Test Location**: `src/features/export/__tests__/ExportSystem.test.ts`
+- **Reference**: `docs/component-placement-guidelines.md#feature-specific-components`
+- **Test Coverage**: File download for all formats (JSON, PDF, MD), template generation, batch export functionality.
+- **E2E Tests**: Full user flow of generating a workflow and exporting all associated artifacts.
+
 ---
 
 ## Story 3.4: Implementation Guidance System
@@ -132,6 +153,13 @@ This epic develops comprehensive workflow generation with validation, preview, e
 - [ ] Configuration examples tested and validated
 - [ ] Multiple deployment approaches documented
 
+### Testing
+- **Test Framework**: Jest
+- **Test Location**: `src/lib/guidance/__tests__/guidance.test.ts`
+- **Reference**: `docs/component-placement-guidelines.md#client-side-utilities`
+- **Test Coverage**: Step-by-step instruction generation, expertise level adaptation, validation step creation.
+- **Integration Tests**: GPT-5 integration for generating documentation content.
+
 ---
 
 ## Story 3.5: Workflow Validation and Testing
@@ -155,6 +183,11 @@ This epic develops comprehensive workflow generation with validation, preview, e
 - Sample data testing framework
 - Performance analysis and warning generation
 - Best practice recommendation engine
+
+### Testing Framework Standardization
+- **Unit & Integration**: Jest with React Testing Library for UI-related validation components.
+- **E2E**: Playwright for simulating user interactions with validation feedback.
+- **Patterns**: Follow established testing patterns for services and components.
 
 ### Definition of Done
 
@@ -195,6 +228,13 @@ This epic develops comprehensive workflow generation with validation, preview, e
 - [ ] Template preview providing adequate information
 - [ ] Customization system adapting templates correctly
 - [ ] Community submission process established
+
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/features/templates/__tests__/TemplateLibrary.test.tsx`
+- **Reference**: `docs/component-placement-guidelines.md#feature-specific-components`
+- **Test Coverage**: Template search, categorization, preview, and customization.
+- **Integration Tests**: Backend template storage and retrieval, community submission workflow.
 
 ---
 

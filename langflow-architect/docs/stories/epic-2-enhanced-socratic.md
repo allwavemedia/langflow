@@ -1,14 +1,22 @@
 # Epic 2: Enhanced Socratic Engine - User Stories
 
+> [!WARNING]
+> **SUPERSEDED BY EPIC 5**
+> This epic has been superseded by [Epic 5: Enhanced Agent Intelligence with Web Search & MCP Integration](./epic-5-agent-intelligence.md).
+> The stories below are maintained for historical reference and to guide the migration of any remaining concepts to the new architecture.
+> **Migration Date**: 2025-08-28
+> **Rationale**: Epic 5 provides a more robust and scalable architecture for domain-aware intelligence, making the patterns in this epic obsolete.
+
 ## Overview
 
 This epic builds advanced conversational capabilities using CopilotKit actions, sophisticated question generation through GPT-5 function calling, and intelligent workflow understanding for the standalone application.
 
-**🔄 STATUS: SUPERSEDED BY EPIC 5** - This epic has been superseded by Epic 5: Enhanced Agent Intelligence with Web Search & MCP Integration, which provides comprehensive domain-aware intelligence. The stories below are maintained for reference and gradual migration to the enhanced architecture.
-
 ---
 
 ## Story 2.1: CopilotKit Action-Based Category Framework
+
+> [!NOTE]
+> **Migration Note**: This concept is now implemented in [Story 5.1: Domain-Aware Context Engine](./epic-5-agent-intelligence.md#story-51-domain-aware-context-engine). The new architecture uses a more advanced domain context engine instead of a static category framework.
 
 **As a user**, I want comprehensive workflow categories with detailed options powered by CopilotKit actions, so that I can easily find the perfect starting point for my specific needs.
 
@@ -41,6 +49,9 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 ## Story 2.2: Intelligent Question Generation
 
+> [!NOTE]
+> **Migration Note**: This functionality is superseded by [Story 5.6: Socratic Inquiry & Disambiguation Module](./epic-5-agent-intelligence.md#story-56-socratic-inquiry--disambiguation-module), which integrates domain-specific knowledge for more intelligent questioning.
+
 **As a user**, I want the agent to ask increasingly specific and contextually relevant questions, so that my workflow requirements become crystal clear through guided discovery.
 
 ### Acceptance Criteria:
@@ -71,6 +82,9 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ---
 
 ## Story 2.3: Real-Time Workflow Construction
+
+> [!NOTE]
+> **Migration Note**: This feature is now part of the core functionality described in [Story 1.5: Basic Workflow Preview](./epic-1-standalone-foundation.md#story-15-basic-workflow-preview) and enhanced by the real-time data from Epic 5.
 
 **As a user**, I want to see my workflow taking shape in real-time as I answer questions, so that I can understand and validate the solution being created.
 
@@ -103,6 +117,9 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 ## Story 2.4: Advanced Context Management
 
+> [!NOTE]
+> **Migration Note**: Context management has been integrated into the core architecture of [Epic 5](./epic-5-agent-intelligence.md), particularly within the Domain-Aware Context Engine (Story 5.1).
+
 **As a developer**, I want sophisticated conversation context management, so that the agent maintains coherent long conversations and can reference previous decisions effectively.
 
 ### Acceptance Criteria:
@@ -134,6 +151,9 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 ## Story 2.5: Expertise Level Adaptation
 
+> [!NOTE]
+> **Migration Note**: This is now addressed in [Story 5.2: Dynamic Expertise Level Assessment](./epic-5-agent-intelligence.md#story-52-dynamic-expertise-level-assessment), which uses more advanced techniques for adaptation.
+
 **As a user**, I want the agent to adapt its communication style and question complexity to match my technical background, so that I'm neither overwhelmed nor under-challenged.
 
 ### Acceptance Criteria:
@@ -164,6 +184,9 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ---
 
 ## Story 2.6: Decision Point Management
+
+> [!NOTE]
+> **Migration Note**: This functionality is now part of the [Socratic Inquiry & Disambiguation Module (Story 5.6)](./epic-5-agent-intelligence.md#story-56-socratic-inquiry--disambiguation-module), which provides more robust decision support.
 
 **As a user**, I want clear guidance when multiple valid options exist for my workflow, so that I can make informed decisions or have the agent choose the best option for me.
 

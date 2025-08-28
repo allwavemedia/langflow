@@ -29,6 +29,13 @@ This epic establishes the independent Next.js web application infrastructure wit
 - [ ] Performance benchmarks met (< 2 second load time)
 - [ ] Error handling implemented and tested
 
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/app/__tests__/infrastructure.test.tsx`
+- **Reference**: `docs/component-placement-guidelines.md#app-directory-structure`
+- **Test Coverage**: Initial page load, cross-browser rendering, responsive breakpoints, basic error states.
+- **Integration Tests**: Vercel deployment pipeline validation.
+
 ---
 
 ## Story 1.2: CopilotKit Chat Interface Implementation
@@ -56,6 +63,13 @@ This epic establishes the independent Next.js web application infrastructure wit
 - [ ] Session persistence tested using CopilotKit runtime
 - [ ] UI/UX reviewed using CopilotKit professional components
 - [ ] Accessibility standards met (WCAG 2.1 AA)
+
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/components/chat/__tests__/CopilotChat.test.tsx`
+- **Reference**: `docs/component-placement-guidelines.md#feature-specific-components`
+- **Test Coverage**: Message rendering, multi-line input, streaming response display, sender identification, copy/paste functionality.
+- **Integration Tests**: End-to-end message sending and receiving with streaming.
 
 ---
 
@@ -85,6 +99,13 @@ This epic establishes the independent Next.js web application infrastructure wit
 - [ ] Performance benchmarks met (< 3 second average)
 - [ ] Cost monitoring and optimization implemented
 
+### Testing
+- **Test Framework**: Jest
+- **Test Location**: `src/app/api/copilotkit/__tests__/route.test.ts`
+- **Reference**: `docs/copilotkit-integration-patterns.md`
+- **Test Coverage**: Action definitions, context management, API failure error handling, response time validation.
+- **Integration Tests**: OpenAI GPT-5 API endpoint integration, `useCopilotAction` hook functionality.
+
 ---
 
 ## Story 1.4: Session Management System
@@ -112,6 +133,12 @@ This epic establishes the independent Next.js web application infrastructure wit
 - [ ] Session list and management UI complete
 - [ ] Data cleanup and expiration working
 - [ ] Security measures for session data implemented
+
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/features/sessions/__tests__/SessionManager.test.tsx`
+- **Test Coverage**: Session creation, persistence, listing, deletion, and automatic state saving.
+- **Integration Tests**: Backend session storage (Redis/DB) connectivity and data integrity.
 
 ---
 
@@ -141,6 +168,12 @@ This epic establishes the independent Next.js web application infrastructure wit
 - [ ] Preview panel responsive across devices
 - [ ] Component visualization library complete
 
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/features/preview/__tests__/WorkflowPreview.test.tsx`
+- **Test Coverage**: Real-time updates, component visualization, panel expansion/collapse, responsive layout.
+- **Integration Tests**: State synchronization with the main chat and workflow generation logic.
+
 ---
 
 ## Story 1.6: Progress Tracking System
@@ -168,6 +201,12 @@ This epic establishes the independent Next.js web application infrastructure wit
 - [ ] Stage transitions properly tracked
 - [ ] Progress persistence across sessions verified
 - [ ] User testing confirms clear understanding of progress
+
+### Testing
+- **Test Framework**: Jest with React Testing Library
+- **Test Location**: `src/features/progress/__tests__/ProgressTracker.test.tsx`
+- **Test Coverage**: Progress calculation, stage labeling and highlighting, automatic updates, persistence across sessions.
+- **Integration Tests**: Synchronization with session management and conversation flow.
 
 ---
 
