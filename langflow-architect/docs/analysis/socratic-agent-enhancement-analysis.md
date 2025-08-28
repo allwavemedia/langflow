@@ -1,3 +1,4 @@
+````markdown
 # Socratic Langflow Architect - Agent Enhancement Analysis
 
 ## 1. Current State Assessment
@@ -223,3 +224,5 @@ First, let me understand your specific healthcare context:
 ---
 
 **This enhancement takes precedence over UI improvements while still supporting the visual workflow builder goals. The enhanced agent will provide much more intelligent and contextual guidance, making the overall tool significantly more valuable for complex enterprise scenarios like healthcare Microsoft 365 Copilot development.**
+
+````

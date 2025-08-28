@@ -22,7 +22,7 @@ langflow-architect/
 ├── README.md                 # This file
 ├── docs/                     # Project documentation
 │   ├── prd-standalone.md     # Product Requirements Document
-│   ├── architecture-standalone.md  # Technical Architecture
+│   ├── architecture/variants/standalone.md  # Technical Architecture
 │   ├── implementation-roadmap.md   # Implementation timeline
 │   └── stories/              # User stories and epics
 │       ├── epic-1-foundation.md
@@ -95,7 +95,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ## Documentation
 
 - **[Product Requirements](./docs/prd-standalone.md)**: Comprehensive product specification
-- **[Technical Architecture](./docs/architecture-standalone.md)**: CopilotKit-based architecture design
+- **[Technical Architecture](./docs/architecture/variants/standalone.md)**: CopilotKit-based architecture design
 - **[Implementation Roadmap](./docs/implementation-roadmap.md)**: 16-week development timeline
 - **[User Stories](./docs/stories/)**: Detailed epic breakdown with acceptance criteria
 

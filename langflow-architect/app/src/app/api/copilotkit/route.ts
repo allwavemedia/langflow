@@ -95,6 +95,76 @@ function getNormalizedTechnologies(contextAnalysis: ContextLike | null): string[
   return contextAnalysis.technologies || [];
 }
 
+// Helper functions for workflow optimization
+const parseWorkflowJson = (jsonString: string) => {
+  try {
+    return { success: true, workflow: JSON.parse(jsonString), error: null };
+  } catch (error) {
+    return { 
+      success: false, 
+      workflow: null, 
+      error: "Invalid JSON format" 
+    };
+  }
+};
+
+const calculateComplexity = (nodeCount: number): 'low' | 'medium' | 'high' => {
+  if (nodeCount > 10) return 'high';
+  if (nodeCount > 5) return 'medium';
+  return 'low';
+};
+
+const generatePerformanceRecommendations = (nodes: WorkflowNode[]): OptimizationRecommendation[] => {
+  const recommendations: OptimizationRecommendation[] = [];
+  
+  if (nodes.length > 15) {
+    recommendations.push({
+      type: 'performance',
+      priority: 'high',
+      title: 'Reduce workflow complexity',
+      description: 'Consider breaking large workflows into smaller, composable sub-workflows',
+      impact: 'Improved execution speed and maintainability'
+    });
+  }
+  
+  const llmNodes = nodes.filter((node: WorkflowNode) => 
+    node.type?.toLowerCase().includes('llm') || 
+    node.data?.type?.toLowerCase().includes('llm')
+  );
+  
+  if (llmNodes.length > 3) {
+    recommendations.push({
+      type: 'performance',
+      priority: 'medium',
+      title: 'Optimize LLM usage',
+      description: 'Consider batching requests or using lighter models for non-critical operations',
+      impact: 'Reduced latency and cost'
+    });
+  }
+  
+  return recommendations;
+};
+
+const generateReliabilityRecommendations = (): OptimizationRecommendation[] => {
+  return [{
+    type: 'reliability',
+    priority: 'high',
+    title: 'Add error handling nodes',
+    description: 'Include error handling and retry logic for external API calls',
+    impact: 'Improved workflow resilience'
+  }];
+};
+
+const generateCostRecommendations = (): OptimizationRecommendation[] => {
+  return [{
+    type: 'cost',
+    priority: 'medium',
+    title: 'Optimize model selection',
+    description: 'Use smaller models for simple tasks and reserve powerful models for complex operations',
+    impact: 'Reduced operational costs'
+  }];
+};
+
 function getNormalizedSpecializations(contextAnalysis: ContextLike | null): string[] {
   if (!contextAnalysis) return [];
   return 'specializations' in contextAnalysis 
@@ -1613,75 +1683,8 @@ const runtime = new CopilotRuntime({
         }
       }
     },
-// Helper functions for workflow optimization
-const parseWorkflowJson = (jsonString: string) => {
-  try {
-    return { success: true, workflow: JSON.parse(jsonString), error: null };
-  } catch (error) {
-    return { 
-      success: false, 
-      workflow: null, 
-      error: "Invalid JSON format" 
-    };
-  }
-};
-
-const calculateComplexity = (nodeCount: number): 'low' | 'medium' | 'high' => {
-  if (nodeCount > 10) return 'high';
-  if (nodeCount > 5) return 'medium';
-  return 'low';
-};
-
-const generatePerformanceRecommendations = (nodes: WorkflowNode[]): OptimizationRecommendation[] => {
-  const recommendations: OptimizationRecommendation[] = [];
-  
-  if (nodes.length > 15) {
-    recommendations.push({
-      type: 'performance',
-      priority: 'high',
-      title: 'Reduce workflow complexity',
-      description: 'Consider breaking large workflows into smaller, composable sub-workflows',
-      impact: 'Improved execution speed and maintainability'
-    });
-  }
-  
-  const llmNodes = nodes.filter((node: WorkflowNode) => 
-    node.type?.toLowerCase().includes('llm') || 
-    node.data?.type?.toLowerCase().includes('llm')
-  );
-  
-  if (llmNodes.length > 3) {
-    recommendations.push({
-      type: 'performance',
-      priority: 'medium',
-      title: 'Optimize LLM usage',
-      description: 'Consider batching requests or using lighter models for non-critical operations',
-      impact: 'Reduced latency and cost'
-    });
-  }
-  
-  return recommendations;
-};
-
-const generateReliabilityRecommendations = (): OptimizationRecommendation[] => {
-  return [{
-    type: 'reliability',
-    priority: 'high',
-    title: 'Add error handling nodes',
-    description: 'Include error handling and retry logic for external API calls',
-    impact: 'Improved workflow resilience'
-  }];
-};
-
-const generateCostRecommendations = (): OptimizationRecommendation[] => {
-  return [{
-    type: 'cost',
-    priority: 'medium',
-    title: 'Optimize model selection',
-    description: 'Use smaller models for simple tasks and reserve powerful models for complex operations',
-    impact: 'Reduced operational costs'
-  }];
-};
+    {
+      name: "optimize_workflow_components",
       description: "Analyze and optimize an existing Langflow workflow JSON with performance recommendations and component suggestions",
       parameters: [
         {
@@ -1761,30 +1764,22 @@ const generateCostRecommendations = (): OptimizationRecommendation[] => {
           }
 
           // Analyze workflow components
-          const componentTypes = nodes.map(node => node.type || node.data?.type).filter(Boolean);
+          const componentTypes = nodes.map((node: WorkflowNode) => node.type || node.data?.type).filter(Boolean);
           const componentAnalysis = {
             totalNodes: nodes.length,
             totalEdges: edges.length,
             componentTypes: [...new Set(componentTypes)],
-            complexity: nodes.length > 10 ? 'high' : nodes.length > 5 ? 'medium' : 'low'
+            complexity: calculateComplexity(nodes.length)
           };
 
           // Generate optimization recommendations
-          const recommendations = [];
+          const recommendations: OptimizationRecommendation[] = [];
           
           // Performance optimizations
           if (optimizationGoals.includes('performance')) {
-            if (nodes.length > 15) {
-              recommendations.push({
-                type: 'performance',
-                priority: 'high',
-                title: 'Reduce workflow complexity',
-                description: 'Consider breaking large workflows into smaller, composable sub-workflows',
-                impact: 'Improved execution speed and maintainability'
-              });
-            }
+            recommendations.push(...generatePerformanceRecommendations(nodes));
             
-            const llmNodes = nodes.filter(node => 
+            const llmNodes = nodes.filter((node: WorkflowNode) => 
               node.type?.toLowerCase().includes('llm') || 
               node.data?.type?.toLowerCase().includes('llm')
             );
@@ -1801,24 +1796,12 @@ const generateCostRecommendations = (): OptimizationRecommendation[] => {
 
           // Reliability optimizations
           if (optimizationGoals.includes('reliability')) {
-            recommendations.push({
-              type: 'reliability',
-              priority: 'high',
-              title: 'Add error handling nodes',
-              description: 'Include error handling and retry logic for external API calls',
-              impact: 'Improved workflow resilience'
-            });
+            recommendations.push(...generateReliabilityRecommendations());
           }
 
           // Cost optimizations
           if (optimizationGoals.includes('cost')) {
-            recommendations.push({
-              type: 'cost',
-              priority: 'medium',
-              title: 'Optimize model selection',
-              description: 'Use smaller models for simple tasks and reserve powerful models for complex operations',
-              impact: 'Reduced operational costs'
-            });
+            recommendations.push(...generateCostRecommendations());
           }
 
           return {
@@ -1894,10 +1877,10 @@ const generateCostRecommendations = (): OptimizationRecommendation[] => {
           }
 
           const nodes = workflow.data?.nodes || [];
-          const componentTypes = nodes.map(node => node.type || node.data?.type).filter(Boolean);
+          const componentTypes: string[] = nodes.map((node: WorkflowNode) => node.type || node.data?.type).filter(Boolean) as string[];
 
           // Search for component compatibility documentation
-          let compatibilityDocs: DocumentationResult[] = [];
+          const compatibilityDocs: DocumentationResult[] = [];
           try {
             for (const componentType of [...new Set(componentTypes)].slice(0, 5)) {
               const docsResponse = await githubDocsManager.searchDocumentation({
@@ -1927,17 +1910,17 @@ const generateCostRecommendations = (): OptimizationRecommendation[] => {
           }
 
           // Analyze component compatibility
-          const validationResults = {
+          const validationResults: ValidationResults = {
             totalComponents: componentTypes.length,
             uniqueComponents: [...new Set(componentTypes)],
-            potentialIssues: [],
-            recommendations: [],
+            potentialIssues: [] as ValidationIssue[],
+            recommendations: [] as string[],
             compatibilityScore: 0.9 // Default high compatibility
           };
 
           // Check for common compatibility issues
           const deprecatedComponents = ['OldLLMChain', 'LegacyPrompt'];
-          const foundDeprecated = componentTypes.filter(type => 
+          const foundDeprecated = componentTypes.filter((type: string) => 
             deprecatedComponents.some(deprecated => 
               type.toLowerCase().includes(deprecated.toLowerCase())
             )
@@ -1954,7 +1937,7 @@ const generateCostRecommendations = (): OptimizationRecommendation[] => {
           }
 
           // Check for missing required fields
-          const nodesWithoutType = nodes.filter(node => !node.type && !node.data?.type);
+          const nodesWithoutType = nodes.filter((node: WorkflowNode) => !node.type && !node.data?.type);
           if (nodesWithoutType.length > 0) {
             validationResults.potentialIssues.push({
               severity: 'medium',

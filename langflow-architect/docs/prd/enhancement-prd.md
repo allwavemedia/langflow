@@ -289,6 +289,6 @@ The phased approach ensures steady progress while managing complexity, with each
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: August 26, 2025  
+**Document Version**: 1.0  \
+**Last Updated**: August 26, 2025  \
 **Next Review**: September 2, 2025

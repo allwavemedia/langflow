@@ -1,0 +1,24 @@
+id: pci
+name: PCI DSS
+version: 1.0.0
+detection_hints:
+  keywords: ["PAN", "tokenization", "PCI DSS", "cardholder data"]
+  regex: ["\\b(?:\\d[ -]*?){13,19}\\b"]
+  entities: ["PCI SSC", "card networks", "QSA"]
+Socratic_questions:
+  required:
+    - Do you store primary account numbers (PAN) at rest?
+    - Which tokenization provider do you use?
+  optional:
+    - Do you mask PAN in logs and exports?
+required_controls:
+  - if: stores_pan == true
+    then: ["tokenize_pan", "mask_pan_on_export"]
+  - if: transmits_pan == true
+    then: ["encryption_in_transit", "restrict_endpoints"]
+evaluation:
+  gold:
+    - prompt: "Log shows 16-digit card, store for later"
+      expect: ["warn_high_risk", "require_tokenization"]
+references:
+  - https://www.pcisecuritystandards.org/

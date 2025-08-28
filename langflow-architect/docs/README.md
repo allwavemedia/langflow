@@ -6,20 +6,37 @@ All documentation for the **Langflow Architect** application is organized within
 
 ### Directory Structure
 
-```
+```text
 langflow-architect/
 ├── docs/                                    # Core documentation
-│   ├── brownfield-enhancement-architecture.md  # Complete architecture documentation
-│   ├── architecture-standalone.md             # Original standalone architecture
-│   ├── enhancement-architecture.md            # Enhancement specifications
-│   ├── enhancement-prd.md                     # Product requirements
-│   ├── implementation-roadmap.md              # Development roadmap
-│   ├── prd-standalone.md                      # Standalone PRD
-│   ├── prd.md                                 # Original PRD
-│   ├── socratic-agent-enhancement-analysis.md # Agent enhancement analysis
-│   ├── socratic-agent-implementation-plan.md  # Implementation planning
-│   ├── socratic-agent-technical-spec.md       # Technical specifications
-│   ├── technical-documentation-summary.md     # Documentation summary
+│   ├── architecture/                          # Architecture docs
+│   │   ├── variants/standalone.md             # Standalone architecture (canonical)
+│   │   ├── enhancement-architecture.md        # Enhancement specifications (moved)
+│   │   └── brownfield-enhancement-architecture.md # Brownfield enhancement architecture (moved)
+│   ├── analysis/                              # Analysis and specs
+│   │   ├── phase-6.4-elicitation-plan.md
+│   │   ├── phase-6.4-requirements.md
+│   │   ├── socratic-agent-enhancement-analysis.md  # Agent enhancement analysis (moved)
+│   │   └── socratic-agent-technical-spec.md        # Technical specification (moved)
+│   ├── plans/                                 # Plans and roadmap
+│   │   ├── api-integration-plan.md            # API integration (moved)
+│   │   ├── brownfield-execution-plan.md       # Code quality hardening (moved)
+│   │   ├── implementation-roadmap.md          # Development roadmap (moved)
+│   │   └── phases/                            # Phase-specific plans (moved)
+│   │       ├── phase-2-implementation-plan.md
+│   │       ├── phase-3-implementation-plan.md
+│   │       ├── phase-4-implementation-plan.md
+│   │       └── phase-6.4-implementation-plan.md
+│   ├── prd/                                   # Product requirements
+│   │   ├── prd.md                             # Original PRD (moved)
+│   │   ├── prd-standalone.md                  # Standalone application PRD (moved)
+│   │   └── enhancement-prd.md                 # UI/UX enhancement PRD (moved)
+│   ├── status/                                # Status summaries
+│   │   └── current-status-summary.md          # Project status (moved)
+│   ├── method/                                # Methodology references
+│   │   └── bmad-methodology-reference.md      # BMad method reference (moved)
+│   ├── archive/                               # Historical docs
+│   │   └── technical-documentation-summary.md # Documentation summary (moved)
 │   └── stories/                               # User stories and epics
 │       ├── epic-1-standalone-foundation.md
 │       ├── epic-2-enhanced-socratic.md
@@ -35,52 +52,35 @@ langflow-architect/
 ## Key Documentation Files
 
 ### Primary Architecture
-- **`brownfield-enhancement-architecture.md`** - **PRIMARY ARCHITECTURE DOCUMENT**
   - Complete technical architecture for web search and MCP integration
   - Brownfield enhancement approach maintaining existing CopilotKit foundation
   - Component specifications, API design, testing strategy, security integration
+  - See: `architecture/` (above)
 
 ### Product Requirements
-- **`enhancement-prd.md`** - Enhanced product requirements with web search and MCP features
-- **`prd-standalone.md`** - Original standalone application requirements
-- **`socratic-agent-enhancement-analysis.md`** - Detailed analysis of agent enhancement needs
+- See: `prd/`
 
 ### Implementation Guidance
-- **`implementation-roadmap.md`** - Phased development approach
-- **`socratic-agent-implementation-plan.md`** - Technical implementation planning
-- **`socratic-agent-technical-spec.md`** - Detailed technical specifications
+- See: `plans/` and `plans/phases/`
+
+### Analysis and Technical Specs
+- See: `analysis/`
+
+### Status and Method
+- See: `status/` and `method/`
 
 ### User Stories and Epics
-- **`stories/epic-5-enhanced-agent-intelligence.md`** - **PRIMARY EPIC** for enhanced intelligence
-- **`stories/epic-consolidation-guide.md`** - Migration strategy and epic consolidation
-- **`stories/epic-1-4-*.md`** - Foundation, conversation, JSON generation, and deployment epics
+- See: `stories/`
 
 ## Documentation Principles
-
-### Separation of Concerns
-- **Langflow Architect docs** are contained within `langflow-architect/docs/`
 - **Main Langflow platform docs** remain in the root `docs/` directory
 - Clear boundaries prevent documentation mixing and confusion
-
-### Architecture-First Approach
-- **`brownfield-enhancement-architecture.md`** serves as the master technical blueprint
 - All implementation follows the architecture specifications
 - Epic stories derive from architectural component definitions
-
-### Version Control and Change Management
-- All Langflow Architect documentation changes occur within the `langflow-architect/` directory
 - Change logs are maintained within individual documents
 - Epic consolidation guide provides migration paths for evolving requirements
-
-## Current Status
-
-### ✅ Completed Documentation
 - **Architecture**: Complete brownfield enhancement architecture
 - **Epic Structure**: 5 epics with consolidation strategy
-- **Requirements**: Enhanced PRD with web search and MCP integration
-- **Implementation**: Roadmap and technical specifications
-
-### 🔄 Active Development Focus
 - **Epic 5**: Enhanced Agent Intelligence (primary development target)
 - **Brownfield Architecture**: Implementation following architectural specifications
 - **MCP Integration**: User-configurable MCP server setup
