@@ -601,7 +601,7 @@ const runtime = new CopilotRuntime({
           });
 
           // Step 2: Documentation Grounding (if enabled)
-          let documentationContext = null;
+          let documentationContext: { results?: unknown[]; total?: number } | null = null;
           if (enableDocGrounding !== false && process.env.FEATURE_DOCS_GROUNDING === 'true') {
             try {
               const docsResponse = await docsMcpServer.handleRequest({
@@ -613,7 +613,7 @@ const runtime = new CopilotRuntime({
               });
               
               if (docsResponse.success) {
-                documentationContext = docsResponse.data;
+                documentationContext = docsResponse.data as { results?: unknown[]; total?: number };
               }
             } catch (error) {
               console.warn('Documentation grounding failed:', error);
@@ -667,7 +667,7 @@ const runtime = new CopilotRuntime({
                 enabled: true,
                 relevant_docs: documentationContext.results?.length || 0,
                 official_sources: documentationContext.total || 0,
-                grounding_quality: documentationContext.results?.length > 0 ? 'high' : 'low'
+                grounding_quality: (documentationContext.results?.length || 0) > 0 ? 'high' : 'low'
               } : { enabled: false },
               web_search_enhancement: webSearchContext ? {
                 enabled: true,
@@ -926,8 +926,9 @@ const runtime = new CopilotRuntime({
                   confidence: getNormalizedConfidence(contextAnalysis) 
                 },
                 technologyStack: { 
-                  platform: getNormalizedTechnologies(contextAnalysis), 
-                  compliance: 'requiresCompliance' in contextAnalysis ? contextAnalysis.requiresCompliance : false 
+                  platform: getNormalizedTechnologies(contextAnalysis).join(', '), 
+                  compliance: 'requiresCompliance' in contextAnalysis ? 
+                    (contextAnalysis.requiresCompliance ? ['compliance-required'] : []) : []
                 },
                 specializations: getNormalizedSpecializations(contextAnalysis)
               };
@@ -1369,7 +1370,7 @@ const runtime = new CopilotRuntime({
 
           // Return structured search results with source attribution
           return {
-            query: searchResponse.query,
+            query: query,
             results: searchResponse.results.map(result => ({
               title: result.title,
               url: result.url,
@@ -1378,9 +1379,9 @@ const runtime = new CopilotRuntime({
               source: result.source,
               relevanceScore: result.relevanceScore
             })),
-            totalResults: searchResponse.totalResults,
-            searchTime: searchResponse.searchTime,
-            source: searchResponse.source,
+            totalResults: searchResponse.results.length,
+            searchTime: `${searchResponse.responseTime}ms`,
+            source: searchResponse.sources[0] || 'unknown',
             cached: searchResponse.cached,
             timestamp: new Date().toISOString()
           };

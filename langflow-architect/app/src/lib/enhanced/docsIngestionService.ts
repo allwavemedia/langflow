@@ -17,7 +17,7 @@ interface DocsIngestOptions {
   enableWebhook?: boolean;
 }
 
-interface DocumentationEntry {
+export interface DocumentationEntry {
   path: string;
   content: string;
   type: 'markdown' | 'json' | 'yaml' | 'mdx';

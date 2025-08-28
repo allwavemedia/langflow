@@ -7,7 +7,7 @@ export { mcpManager } from './mcpManager';
 // export { EnhancedCopilotManager, createEnhancedCopilotManager } from './EnhancedCopilotManager';
 
 // Search Manager
-export { searchManager, WebSearchManager } from './searchManager';
+export { searchManager, SearchManager } from './searchManager';
 
 // MCP Tool Utilities - Based on CopilotKit Official Patterns
 export {
@@ -24,8 +24,7 @@ export {
 } from './mcpToolUtils';
 
 export type {
-  ContextAnalysis,
-  ContextEngineConfig
+  ContextAnalysis
 } from './contextEngine';
 
 export type {
@@ -33,12 +32,6 @@ export type {
   McpQueryResponse,
   McpQueryOptions
 } from './mcpManager';
-
-export type {
-  SearchResult,
-  SearchOptions,
-  SearchResponse
-} from './searchManager';
 
 // TODO: Phase 2 - Re-enable when EnhancedCopilotManager is fully compatible
 /*

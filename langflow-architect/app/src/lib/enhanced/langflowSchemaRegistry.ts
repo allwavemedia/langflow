@@ -113,24 +113,16 @@ export class LangflowSchemaRegistry {
                 properties: {
                   id: { type: "string" },
                   type: { type: "string" },
+                  data: {},
                   position: {
-                    type: "object", 
+                    type: "object",
                     properties: {
                       x: { type: "number" },
                       y: { type: "number" }
-                    },
-                    required: ["x", "y"]
-                  },
-                  data: {
-                    type: "object",
-                    properties: {
-                      type: { type: "string" },
-                      node: { type: "object" }
-                    },
-                    required: ["type"]
+                    }
                   }
                 },
-                required: ["id", "type", "position", "data"]
+                required: ["id", "type"]
               }
             },
             edges: {
