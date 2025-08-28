@@ -9,7 +9,7 @@ interface SearchResult {
   score: number;
   timestamp: Date;
   domain: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   relevanceScore?: number;
 }
 
@@ -21,15 +21,6 @@ interface SearchOptions {
   language?: string;
   safeSearch?: boolean;
   timeout?: number;
-}
-
-interface SearchResponse {
-  results: SearchResult[];
-  query: string;
-  totalResults: number;
-  searchTime: number;
-  source: 'tavily' | 'duckduckgo' | 'fallback';
-  cached: boolean;
 }
 
 interface SearchMetrics {
@@ -124,7 +115,7 @@ export class SearchManager {
 
       const searchResults = await Promise.allSettled(searchPromises);
       
-      let allResults: SearchResult[] = [];
+      const allResults: SearchResult[] = [];
       
       for (const result of searchResults) {
         if (result.status === 'fulfilled') {
@@ -254,7 +245,7 @@ export class SearchManager {
 
   private parseDuckDuckGoHtml(html: string, maxResults: number): SearchResult[] {
     const results: SearchResult[] = [];
-    const resultPattern = /<div class="result[^"]*"[^>]*>.*?<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>.*?<a class="result__snippet"[^>]*>([^<]+)<\/a>/gs;
+    const resultPattern = /<div class="result[^"]*"[^>]*>[\s\S]*?<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([^<]+)<\/a>/g;
     
     let match;
     let count = 0;
@@ -438,7 +429,9 @@ export class SearchManager {
     
     if (this.cache.size > 1000) {
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
     }
     
     this.saveCacheToStorage();
@@ -463,13 +456,16 @@ export class SearchManager {
     try {
       const stored = localStorage.getItem('search-cache');
       if (stored) {
-        const cacheData: Array<[string, any]> = JSON.parse(stored);
+        const cacheData: Array<[string, Omit<CachedSearchResult, 'timestamp' | 'results'> & { 
+          timestamp: string; 
+          results: Array<Omit<SearchResult, 'timestamp'> & { timestamp: string }>
+        }]> = JSON.parse(stored);
         this.cache = new Map(cacheData.map(([key, value]) => [
           key,
           {
             ...value,
             timestamp: new Date(value.timestamp),
-            results: value.results.map((r: any) => ({
+            results: value.results.map((r) => ({
               ...r,
               timestamp: new Date(r.timestamp)
             }))

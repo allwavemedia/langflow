@@ -7,7 +7,6 @@ import OpenAI from "openai";
 import { NextRequest } from "next/server";
 import { contextEngine, ContextAnalysis } from "../../../lib/enhanced/contextEngine";
 import { mcpManager, McpServerConfig, McpQueryResponse } from "../../../lib/enhanced/mcpManager";
-import { docsIngestionService } from "../../../lib/enhanced/docsIngestionService";
 import { langflowSchemaRegistry } from "../../../lib/enhanced/langflowSchemaRegistry";
 import { searchManager } from "../../../lib/enhanced/searchManager";
 import { docsMcpServer } from "../../../lib/enhanced/docsMcpServer";
@@ -18,9 +17,9 @@ interface WorkflowNode {
   type?: string;
   data?: {
     type?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OptimizationRecommendation {
@@ -99,17 +98,6 @@ function getNormalizedTechnologies(contextAnalysis: ContextLike | null): string[
 }
 
 // Helper functions for workflow optimization
-const parseWorkflowJson = (jsonString: string) => {
-  try {
-    return { success: true, workflow: JSON.parse(jsonString), error: null };
-  } catch (error) {
-    return { 
-      success: false, 
-      workflow: null, 
-      error: "Invalid JSON format" 
-    };
-  }
-};
 
 const calculateComplexity = (nodeCount: number): 'low' | 'medium' | 'high' => {
   if (nodeCount > 10) return 'high';
@@ -244,7 +232,7 @@ async function handleContextUpdate(conversationId: string, contextData: string, 
         ? (parsedData.userInput || parsedData.requirements || JSON.stringify(parsedData))
         : parsedData;
       
-      updatedContext = await contextEngine.analyzeContext(analysisText);
+      updatedContext = await contextEngine.query({ query: analysisText });
     }
 
     return {
@@ -426,7 +414,7 @@ const runtime = new CopilotRuntime({
             const convId = conversationId || `conv-${Date.now()}-${Math.random()}`;
             
             // Enhanced context analysis using Context Understanding Engine
-            const contextAnalysis = await contextEngine.analyzeContext(`${domain} ${requirements}`);
+            const contextAnalysis = await contextEngine.query({ query: `${domain} ${requirements}` });
 
             // Get domain-specific MCP servers
             const mcpServers = mcpManager.getServersForDomain(getNormalizedDomain(contextAnalysis));
@@ -1470,7 +1458,7 @@ const runtime = new CopilotRuntime({
               // Clear conversation context
               try {
                 // Note: contextEngine doesn't have a clear method, so we'll simulate it
-                await contextEngine.analyzeContext('general conversation');
+                await contextEngine.query({ query: 'general conversation' });
                 
                 return {
                   action: 'clear',
@@ -1527,7 +1515,7 @@ const runtime = new CopilotRuntime({
                 if (!existingContext) {
                   // No existing context, create new
                   const analysisText = newData.userInput || newData.requirements || JSON.stringify(newData);
-                  const newContext = await contextEngine.analyzeContext(analysisText);
+                  const newContext = await contextEngine.query({ query: analysisText });
                   
                   return {
                     action: 'merge',
@@ -1545,7 +1533,7 @@ const runtime = new CopilotRuntime({
 
                 // Merge with existing context
                 const mergedInput = `${JSON.stringify(existingContext)} ${JSON.stringify(newData)}`;
-                const mergedContext = await contextEngine.analyzeContext(mergedInput);
+                const mergedContext = await contextEngine.query({ query: mergedInput });
                 
                 return {
                   action: 'merge',
@@ -1670,7 +1658,7 @@ const runtime = new CopilotRuntime({
           const convId = conversationId || `enhanced-${Date.now()}-${Math.random()}`;
           
           // 1. Enhanced context analysis using existing context engine
-          const contextAnalysis = await contextEngine.analyzeContext(`${domain} ${requirements}`);
+          const contextAnalysis = await contextEngine.query({ query: `${domain} ${requirements}` });
           const normalizedDomain = getNormalizedDomain(contextAnalysis);
           const technologies = getNormalizedTechnologies(contextAnalysis);
 
@@ -1925,7 +1913,7 @@ const runtime = new CopilotRuntime({
           let workflow;
           try {
             workflow = JSON.parse(workflowJson);
-          } catch (parseError) {
+          } catch {
             return {
               message: "Failed to parse workflow JSON",
               error: "Invalid JSON format",
@@ -1939,7 +1927,7 @@ const runtime = new CopilotRuntime({
           const edges = workflow.data?.edges || [];
           
           // Get context analysis for optimization domain
-          const contextAnalysis = await contextEngine.analyzeContext(`${optimizationGoals} optimization for workflow with ${nodes.length} nodes`);
+          const contextAnalysis = await contextEngine.query({ query: `${optimizationGoals} optimization for workflow with ${nodes.length} nodes` });
           const domain = getNormalizedDomain(contextAnalysis);
 
           // Query MCP servers for optimization best practices
@@ -2075,7 +2063,7 @@ const runtime = new CopilotRuntime({
           let workflow;
           try {
             workflow = JSON.parse(workflowJson);
-          } catch (parseError) {
+          } catch {
             return {
               message: "Failed to parse workflow JSON for validation",
               error: "Invalid JSON format",

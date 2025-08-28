@@ -1,7 +1,7 @@
 // DocsMcpServer - Phase 2: Build a lightweight MCP "Langflow Docs" server that serves schema, components, and samples; add a webhook endpoint to refresh cache on doc updates
 
-import { docsIngestionService, type DocumentationEntry } from './docsIngestionService';
-import { langflowSchemaRegistry, type LangflowComponent } from './langflowSchemaRegistry';
+import { docsIngestionService } from './docsIngestionService';
+import { langflowSchemaRegistry } from './langflowSchemaRegistry';
 
 interface McpDocRequest {
   method: string;
@@ -13,9 +13,32 @@ interface McpDocRequest {
   };
 }
 
+interface DocParams {
+  query?: string;
+  category?: string;
+  type?: string;
+  limit?: number;
+  workflow?: {
+    data?: {
+      nodes?: unknown[];
+      edges?: unknown[];
+    };
+    name?: string;
+    description?: string;
+  };
+}
+
+interface WebhookPayload {
+  commits?: Array<{
+    modified?: string[];
+    added?: string[];
+    removed?: string[];
+  }>;
+}
+
 interface McpDocResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   sources?: string[];
   timestamp: string;
@@ -116,7 +139,7 @@ export class DocsMcpServer {
     }
   }
 
-  private async getDocumentation(params?: any): Promise<McpDocResponse> {
+  private async getDocumentation(params?: DocParams): Promise<McpDocResponse> {
     try {
       const category = params?.category;
       const limit = params?.limit || 50;
@@ -158,7 +181,7 @@ export class DocsMcpServer {
     }
   }
 
-  private async getComponents(params?: any): Promise<McpDocResponse> {
+  private async getComponents(params?: DocParams): Promise<McpDocResponse> {
     try {
       const category = params?.category;
       const limit = params?.limit || 50;
@@ -210,7 +233,7 @@ export class DocsMcpServer {
     }
   }
 
-  private async getSchemas(params?: any): Promise<McpDocResponse> {
+  private async getSchemas(_params?: DocParams): Promise<McpDocResponse> {
     try {
       const stats = langflowSchemaRegistry.getCacheStatistics();
       
@@ -234,7 +257,7 @@ export class DocsMcpServer {
     }
   }
 
-  private async searchDocumentation(params?: any): Promise<McpDocResponse> {
+  private async searchDocumentation(params?: DocParams): Promise<McpDocResponse> {
     try {
       const query = params?.query;
       const category = params?.category;
@@ -279,7 +302,7 @@ export class DocsMcpServer {
     }
   }
 
-  private async validateWorkflow(params?: any): Promise<McpDocResponse> {
+  private async validateWorkflow(params?: DocParams): Promise<McpDocResponse> {
     try {
       const workflow = params?.workflow;
       
@@ -389,7 +412,7 @@ export class DocsMcpServer {
   }
 
   // Webhook endpoint handler
-  async handleWebhook(payload: any, signature?: string): Promise<McpDocResponse> {
+  async handleWebhook(payload: WebhookPayload, signature?: string): Promise<McpDocResponse> {
     if (!this.options.enableWebhook) {
       return {
         success: false,
