@@ -172,7 +172,7 @@ test.describe('Socratic Langflow Architect - Live API Integration', () => {
         const parsedBody = JSON.parse(response.body)
         expect(parsedBody).toHaveProperty('choices')
         expect(Array.isArray(parsedBody.choices)).toBe(true)
-      } catch (e) {
+      } catch {
         console.warn('Could not parse response body:', response.body)
       }
     }
@@ -329,7 +329,7 @@ test.describe('Socratic Langflow Architect - Live API Integration', () => {
           
           console.log(`✅ Valid Langflow JSON generated with ${langflowJson.data.nodes.length} nodes and ${langflowJson.data.edges.length} edges`)
           
-        } catch (e) {
+        } catch {
           console.warn(`Could not parse generated JSON:`, e)
         }
       } else {

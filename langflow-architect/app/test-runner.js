@@ -63,7 +63,7 @@ class TestRunner {
       // Generate report
       this.generateReport();
       
-    } catch (error) {
+    } catch {
       console.error('❌ Test suite failed:', error.message);
       process.exit(1);
     }
@@ -99,7 +99,7 @@ class TestRunner {
     try {
       await this.runCommand('npm', ['test', '--', '--passWithNoTests']);
       return { status: 'passed', message: 'All unit tests passed' };
-    } catch (error) {
+    } catch {
       return { status: 'failed', message: error.message };
     }
   }
@@ -108,7 +108,7 @@ class TestRunner {
     try {
       await this.runCommand('npx', ['playwright', 'test', '--project=chromium']);
       return { status: 'passed', message: 'All E2E tests passed' };
-    } catch (error) {
+    } catch {
       return { status: 'failed', message: error.message };
     }
   }
@@ -118,7 +118,7 @@ class TestRunner {
       // Run specific API integration tests
       await this.runCommand('npx', ['playwright', 'test', '__tests__/e2e/copilotkit-integration.spec.ts']);
       return { status: 'passed', message: 'All API integration tests passed' };
-    } catch (error) {
+    } catch {
       return { status: 'failed', message: error.message };
     }
   }
@@ -132,7 +132,7 @@ class TestRunner {
         message: `Performance tests completed`, 
         metrics: performanceResults 
       };
-    } catch (error) {
+    } catch {
       return { status: 'failed', message: error.message };
     }
   }
@@ -197,7 +197,7 @@ class TestRunner {
           console.log('✅ Server is ready\n');
           return;
         }
-      } catch (error) {
+      } catch {
         // Server not ready yet
       }
       

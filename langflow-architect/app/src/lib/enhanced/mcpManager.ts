@@ -119,7 +119,7 @@ class McpManager {
         healthy = true; // Simplified for now
       }
       server.healthStatus = healthy ? 'healthy' : 'unhealthy';
-    } catch (error) {
+    } catch {
       server.healthStatus = 'unhealthy';
     } finally {
       server.lastChecked = new Date();
@@ -169,7 +169,7 @@ class McpManager {
     );
   }
 
-  async queryServers(query: string, domain: string = 'general', options: McpQueryOptions = {}): Promise<McpQueryResponse<any>> {
+  async queryServers(query: string, domain: string = 'general', options: McpQueryOptions = {}): Promise<McpQueryResponse<unknown>> {
     const { timeout = 5000, fallbackServers = [] } = options;
     
     let candidates = this.getServersForDomain(domain);
@@ -187,7 +187,7 @@ class McpManager {
     const queryPromises = candidates.map(server => this.queryServer(server, query, timeout));
     const settledResults = await Promise.allSettled(queryPromises);
     
-    const successfulResults: any[] = [];
+    const successfulResults: unknown[] = [];
     const sources: string[] = [];
     const errors: string[] = [];
 
@@ -197,7 +197,7 @@ class McpManager {
         successfulResults.push(...(result.value.data || []));
         sources.push(server.name);
       } else {
-        const errorMsg = result.status === 'rejected' ? result.reason : (result.value as any).error;
+        const errorMsg = result.status === 'rejected' ? result.reason : (result.value as { error?: string }).error;
         errors.push(`${server.name}: ${errorMsg}`);
       }
     });
@@ -205,7 +205,7 @@ class McpManager {
     return { results: successfulResults, sources, success: successfulResults.length > 0, errors };
   }
 
-  private async queryServer(server: McpServerConfig, query: string, timeout: number): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  private async queryServer(server: McpServerConfig, query: string, _timeout: number): Promise<{ success: boolean; data?: unknown[]; error?: string }> {
     try {
       // Simulate MCP server query
       const mockResponse = {
@@ -218,7 +218,7 @@ class McpManager {
       };
       await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network latency
       return mockResponse;
-    } catch (error) {
+    } catch {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }

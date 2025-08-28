@@ -1,7 +1,7 @@
 // LangflowSchemaRegistry - Phase 2: Extract JSON schema specs into a normalized model and persist a local cache
 // Add AJV-based JSON schema validation service used during JSON generation/export
 
-import Ajv, { type JSONSchemaType, type ValidateFunction } from 'ajv';
+import Ajv, { type ValidateFunction } from 'ajv';
 import type { DocumentationEntry } from './docsIngestionService';
 
 interface LangflowComponent {
@@ -11,7 +11,7 @@ interface LangflowComponent {
   description: string;
   inputs: ComponentInput[];
   outputs: ComponentOutput[];
-  template: Record<string, any>;
+  template: Record<string, unknown>;
   metadata: ComponentMetadata;
 }
 
@@ -20,7 +20,7 @@ interface ComponentInput {
   displayName: string;
   type: string;
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   options?: string[];
   description?: string;
 }
@@ -47,12 +47,12 @@ interface LangflowWorkflowSchema {
     data: {
       type: string;
       properties: {
-        nodes: any;
-        edges: any;
+        nodes: unknown;
+        edges: unknown;
       };
     };
-    description: any;
-    name: any;
+    description: unknown;
+    name: unknown;
   };
   required: string[];
 }
@@ -65,7 +65,7 @@ interface ValidationResult {
 }
 
 interface SchemaCache {
-  schemas: Map<string, any>;
+  schemas: Map<string, unknown>;
   components: Map<string, LangflowComponent>;
   validators: Map<string, ValidateFunction>;
   lastUpdated: Date;
@@ -195,7 +195,7 @@ export class LangflowSchemaRegistry {
           });
         }
         
-      } catch (error) {
+      } catch {
         console.warn(`Failed to extract schema from ${entry.path}:`, error);
       }
     }
@@ -235,7 +235,7 @@ export class LangflowSchemaRegistry {
 
       return component;
       
-    } catch (error) {
+    } catch {
       console.warn(`Failed to extract component from ${entry.path}:`, error);
       return null;
     }
@@ -282,7 +282,7 @@ export class LangflowSchemaRegistry {
     return inputs;
   }
 
-  private extractOutputsFromMarkdown(content: string): ComponentOutput[] {
+  private extractOutputsFromMarkdown(_content: string): ComponentOutput[] {
     // Similar logic to inputs but for outputs
     return [
       {
@@ -294,7 +294,7 @@ export class LangflowSchemaRegistry {
     ];
   }
 
-  private extractTemplateFromMarkdown(content: string): Record<string, any> {
+  private extractTemplateFromMarkdown(content: string): Record<string, unknown> {
     // Extract JSON examples or code blocks
     const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/g;
     const matches = content.match(codeBlockRegex);
@@ -303,7 +303,7 @@ export class LangflowSchemaRegistry {
       try {
         const jsonMatch = matches[0].replace(/```json\s*|\s*```/g, '');
         return JSON.parse(jsonMatch);
-      } catch (error) {
+      } catch {
         // Ignore parsing errors
       }
     }
@@ -311,8 +311,8 @@ export class LangflowSchemaRegistry {
     return {};
   }
 
-  private extractSchemasFromApiDocs(entry: DocumentationEntry): Array<{ path: string; schema: any }> {
-    const schemas: Array<{ path: string; schema: any }> = [];
+  private extractSchemasFromApiDocs(entry: DocumentationEntry): Array<{ path: string; schema: unknown }> {
+    const schemas: Array<{ path: string; schema: unknown }> = [];
     
     try {
       if (entry.type === 'json') {
@@ -335,14 +335,14 @@ export class LangflowSchemaRegistry {
           });
         }
       }
-    } catch (error) {
+    } catch {
       console.warn(`Failed to parse API documentation ${entry.path}:`, error);
     }
     
     return schemas;
   }
 
-  validateWorkflow(workflowJson: any): ValidationResult {
+  validateWorkflow(workflowJson: unknown): ValidationResult {
     try {
       const validator = this.cache.validators.get('workflow');
       if (!validator) {
@@ -383,7 +383,7 @@ export class LangflowSchemaRegistry {
         schemaVersion: this.cache.version
       };
 
-    } catch (error) {
+    } catch {
       return {
         valid: false,
         errors: [`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`],
@@ -393,7 +393,7 @@ export class LangflowSchemaRegistry {
     }
   }
 
-  private validateNodes(nodes: any[]): { errors: string[]; warnings: string[] } {
+  private validateNodes(nodes: unknown[]): { errors: string[]; warnings: string[] } {
     const errors: string[] = [];
     const warnings: string[] = [];
     
@@ -480,7 +480,7 @@ export class LangflowSchemaRegistry {
       };
       
       localStorage.setItem(this.cacheKey, JSON.stringify(cacheData));
-    } catch (error) {
+    } catch {
       console.warn('Failed to save schema cache to storage:', error);
     }
   }
@@ -501,12 +501,12 @@ export class LangflowSchemaRegistry {
         for (const [id, schema] of this.cache.schemas) {
           try {
             this.cache.validators.set(id, this.ajv.compile(schema));
-          } catch (error) {
+          } catch {
             console.warn(`Failed to compile schema ${id}:`, error);
           }
         }
       }
-    } catch (error) {
+    } catch {
       console.warn('Failed to load schema cache from storage:', error);
     }
   }
