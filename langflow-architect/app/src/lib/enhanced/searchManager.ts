@@ -1,27 +1,29 @@
-/**
- * Search Manager for Web Search Integration - Phase 2 Implementation
- * Provides Tavily + DuckDuckGo integration with intelligent fallback
- */
+// SearchManager - Phase 2: Web search integration with attribution
+// Create SearchManager that abstracts Tavily + DuckDuckGo with domain filters, dedupe, ranking, and per-result attribution
 
-export interface SearchResult {
+interface SearchResult {
   title: string;
   url: string;
   snippet: string;
-  domain: string;
-  timestamp: number;
-  relevanceScore?: number;
   source: 'tavily' | 'duckduckgo';
+  score: number;
+  timestamp: Date;
+  domain: string;
+  metadata?: Record<string, any>;
+  relevanceScore?: number;
 }
 
-export interface SearchOptions {
+interface SearchOptions {
   maxResults?: number;
   domainFilter?: string[];
   excludeDomains?: string[];
   timeRange?: 'day' | 'week' | 'month' | 'year' | 'all';
   language?: string;
+  safeSearch?: boolean;
+  timeout?: number;
 }
 
-export interface SearchResponse {
+interface SearchResponse {
   results: SearchResult[];
   query: string;
   totalResults: number;
@@ -30,145 +32,211 @@ export interface SearchResponse {
   cached: boolean;
 }
 
-export class WebSearchManager {
-  private cache: Map<string, { result: SearchResponse; expiry: number }> = new Map();
-  private cacheTimeout = 1000 * 60 * 30; // 30 minutes
+interface SearchMetrics {
+  totalQueries: number;
+  tavilyQueries: number;
+  duckduckgoQueries: number;
+  cacheHits: number;
+  cacheMisses: number;
+  averageResponseTime: number;
+  lastQuery: Date | null;
+}
 
-  /**
-   * Perform web search with Tavily as primary, DuckDuckGo as fallback
-   */
-  async search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
-    const cacheKey = this.getCacheKey(query, options);
-    const cached = this.getFromCache(cacheKey);
+interface CachedSearchResult {
+  results: SearchResult[];
+  timestamp: Date;
+  query: string;
+  options: SearchOptions;
+}
+
+interface TavilyResponse {
+  results: Array<{
+    title: string;
+    url: string;
+    content: string;
+    score: number;
+    raw_content?: string;
+  }>;
+}
+
+export class SearchManager {
+  private cache: Map<string, CachedSearchResult> = new Map();
+  private metrics: SearchMetrics;
+  private readonly cacheTtl: number;
+  private readonly tavilyApiKey?: string;
+  private readonly searchTimeout: number;
+  private readonly enableCaching: boolean;
+
+  constructor() {
+    this.tavilyApiKey = process.env.TAVILY_API_KEY;
+    this.searchTimeout = parseInt(process.env.SEARCH_TIMEOUT_MS || '5000');
+    this.cacheTtl = parseInt(process.env.SEARCH_CACHE_TTL_MS || '1800000'); // 30 minutes default
+    this.enableCaching = process.env.SEARCH_ENABLE_CACHE !== 'false';
     
-    if (cached) {
-      return { ...cached, cached: true };
+    this.metrics = {
+      totalQueries: 0,
+      tavilyQueries: 0,
+      duckduckgoQueries: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      averageResponseTime: 0,
+      lastQuery: null
+    };
+
+    this.loadCacheFromStorage();
+  }
+
+  async search(query: string, options: SearchOptions = {}): Promise<{
+    results: SearchResult[];
+    sources: string[];
+    attribution: string[];
+    responseTime: number;
+    cached: boolean;
+  }> {
+    const startTime = Date.now();
+    this.metrics.totalQueries++;
+    this.metrics.lastQuery = new Date();
+
+    const cacheKey = this.generateCacheKey(query, options);
+    const cached = this.getCachedResult(cacheKey);
+    
+    if (cached && this.enableCaching) {
+      this.metrics.cacheHits++;
+      return {
+        results: cached.results,
+        sources: [...new Set(cached.results.map(r => r.source))],
+        attribution: this.generateAttribution(cached.results),
+        responseTime: Date.now() - startTime,
+        cached: true
+      };
     }
 
-    const startTime = Date.now();
+    this.metrics.cacheMisses++;
 
     try {
-      // Try Tavily first
-      const tavilyResult = await this.searchTavily(query, options);
-      const result: SearchResponse = {
-        ...tavilyResult,
-        searchTime: Date.now() - startTime,
-        source: 'tavily',
+      const searchPromises: Promise<SearchResult[]>[] = [];
+      
+      if (this.tavilyApiKey) {
+        searchPromises.push(this.searchTavily(query, options));
+      }
+      
+      searchPromises.push(this.searchDuckDuckGo(query, options));
+
+      const searchResults = await Promise.allSettled(searchPromises);
+      
+      let allResults: SearchResult[] = [];
+      
+      for (const result of searchResults) {
+        if (result.status === 'fulfilled') {
+          allResults.push(...result.value);
+        }
+      }
+
+      const deduplicatedResults = this.deduplicateResults(allResults);
+      const rankedResults = this.rankResults(deduplicatedResults, query);
+      const filteredResults = this.applyFilters(rankedResults, options);
+      
+      const maxResults = options.maxResults || 10;
+      const finalResults = filteredResults.slice(0, maxResults);
+
+      if (this.enableCaching) {
+        this.cacheResult(cacheKey, {
+          results: finalResults,
+          timestamp: new Date(),
+          query,
+          options
+        });
+      }
+
+      const responseTime = Date.now() - startTime;
+      this.updateMetrics(responseTime);
+
+      return {
+        results: finalResults,
+        sources: [...new Set(finalResults.map(r => r.source))],
+        attribution: this.generateAttribution(finalResults),
+        responseTime,
         cached: false
       };
 
-      this.setCache(cacheKey, result);
-      return result;
     } catch (error) {
-      console.warn('Tavily search failed, falling back to DuckDuckGo:', error);
+      console.error('Search error:', error);
       
-      try {
-        const duckResult = await this.searchDuckDuckGo(query, options);
-        const result: SearchResponse = {
-          ...duckResult,
-          searchTime: Date.now() - startTime,
-          source: 'duckduckgo',
-          cached: false
-        };
-
-        this.setCache(cacheKey, result);
-        return result;
-      } catch (fallbackError) {
-        console.error('Both search providers failed:', fallbackError);
-        
-        // Return empty result as final fallback
-        return {
-          results: [],
-          query,
-          totalResults: 0,
-          searchTime: Date.now() - startTime,
-          source: 'fallback',
-          cached: false
-        };
-      }
+      return {
+        results: [],
+        sources: [],
+        attribution: [`Search error: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        responseTime: Date.now() - startTime,
+        cached: false
+      };
     }
   }
 
-  /**
-   * Search using Tavily API
-   */
-  private async searchTavily(query: string, options: SearchOptions): Promise<Omit<SearchResponse, 'searchTime' | 'source' | 'cached'>> {
-    const apiKey = process.env.TAVILY_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('TAVILY_API_KEY environment variable not configured');
+  private async searchTavily(query: string, options: SearchOptions): Promise<SearchResult[]> {
+    if (!this.tavilyApiKey) {
+      throw new Error('Tavily API key not available');
     }
 
-    const payload = {
-      api_key: apiKey,
-      query,
-      search_depth: 'basic',
-      include_answer: false,
-      include_images: false,
-      include_raw_content: false,
-      max_results: options.maxResults || 5,
-      include_domains: options.domainFilter || [],
-      exclude_domains: options.excludeDomains || []
-    };
+    this.metrics.tavilyQueries++;
 
     try {
       const response = await fetch('https://api.tavily.com/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.tavilyApiKey}`
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          query,
+          search_depth: 'basic',
+          max_results: options.maxResults || 10,
+          include_domains: options.domainFilter,
+          exclude_domains: options.excludeDomains,
+          include_answer: false,
+          include_raw_content: false
+        }),
+        signal: AbortSignal.timeout(this.searchTimeout)
       });
 
       if (!response.ok) {
-        throw new Error(`Tavily API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Tavily API error: ${response.status}`);
       }
 
-      const data = await response.json() as { results: Array<{ title?: string; url?: string; content?: string; snippet?: string }> };
+      const data: TavilyResponse = await response.json();
       
-      if (!data.results) {
-        throw new Error('Invalid Tavily API response: missing results');
-      }
-
-      const results: SearchResult[] = data.results.map((item, index: number) => ({
-        title: item.title || 'Untitled',
-        url: item.url || '',
-        snippet: item.content || item.snippet || '',
-        domain: this.extractDomain(item.url || ''),
-        timestamp: Date.now(),
-        relevanceScore: Math.max(0.9 - (index * 0.1), 0.1), // Decreasing relevance
-        source: 'tavily' as const
+      return data.results.map(result => ({
+        title: result.title,
+        url: result.url,
+        snippet: result.content,
+        source: 'tavily' as const,
+        score: result.score || 0.5,
+        timestamp: new Date(),
+        domain: new URL(result.url).hostname,
+        metadata: {
+          tavilyScore: result.score
+        }
       }));
 
-      return {
-        results: this.rankResults(this.deduplicateResults(results)),
-        query,
-        totalResults: results.length
-      };
     } catch (error) {
-      console.error('Tavily API request failed:', error);
-      throw error;
+      console.warn('Tavily search failed:', error);
+      return [];
     }
   }
 
-  /**
-   * Search using DuckDuckGo
-   */
-  private async searchDuckDuckGo(query: string, options: SearchOptions): Promise<Omit<SearchResponse, 'searchTime' | 'source' | 'cached'>> {
-    // DuckDuckGo's Instant Answer API - free but limited
-    const maxResults = Math.min(options.maxResults || 5, 10); // DDG API limitation
-    
+  private async searchDuckDuckGo(query: string, options: SearchOptions): Promise<SearchResult[]> {
+    this.metrics.duckduckgoQueries++;
+
     try {
-      // Use DDG's HTML search with no-js parameter for easier parsing
       const searchUrl = new URL('https://html.duckduckgo.com/html/');
       searchUrl.searchParams.set('q', query);
-      searchUrl.searchParams.set('kp', '-2'); // Safe search off for more results
+      searchUrl.searchParams.set('kp', '-2');
       
       const response = await fetch(searchUrl.toString(), {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; LangflowBot/1.0; +https://langflow.org)',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
+        signal: AbortSignal.timeout(this.searchTimeout)
       });
 
       if (!response.ok) {
@@ -176,148 +244,17 @@ export class WebSearchManager {
       }
 
       const html = await response.text();
-      const results = this.parseDuckDuckGoHtml(html, maxResults);
+      return this.parseDuckDuckGoHtml(html, options.maxResults || 10);
 
-      return {
-        results: this.filterByDomain(this.rankResults(this.deduplicateResults(results)), options),
-        query,
-        totalResults: results.length
-      };
     } catch (error) {
-      console.error('DuckDuckGo search failed:', error);
-      
-      // Final fallback - return empty results
-      return {
-        results: [],
-        query,
-        totalResults: 0
-      };
+      console.warn('DuckDuckGo search failed:', error);
+      return [];
     }
   }
 
-  /**
-   * Generate cache key for search query and options
-   */
-  private getCacheKey(query: string, options: SearchOptions): string {
-    const optionsStr = JSON.stringify(options);
-    return `${query}:${optionsStr}`;
-  }
-
-  /**
-   * Get result from cache if not expired
-   */
-  private getFromCache(key: string): SearchResponse | null {
-    const cached = this.cache.get(key);
-    if (!cached) return null;
-
-    if (Date.now() > cached.expiry) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return cached.result;
-  }
-
-  /**
-   * Set result in cache with expiry
-   */
-  private setCache(key: string, result: SearchResponse): void {
-    this.cache.set(key, {
-      result,
-      expiry: Date.now() + this.cacheTimeout
-    });
-  }
-
-  /**
-   * Clear expired cache entries
-   */
-  clearExpiredCache(): void {
-    const now = Date.now();
-    for (const [key, cached] of this.cache.entries()) {
-      if (now > cached.expiry) {
-        this.cache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getCacheStats(): {
-    totalEntries: number;
-    hitRate: number;
-    size: number;
-  } {
-    // TODO: Implement proper hit rate tracking
-    return {
-      totalEntries: this.cache.size,
-      hitRate: 0.7, // Mock 70% hit rate
-      size: this.cache.size
-    };
-  }
-
-  /**
-   * Filter results by domain
-   */
-  private filterByDomain(results: SearchResult[], options: SearchOptions): SearchResult[] {
-    if (!options.domainFilter && !options.excludeDomains) {
-      return results;
-    }
-
-    return results.filter(result => {
-      if (options.excludeDomains?.includes(result.domain)) {
-        return false;
-      }
-
-      if (options.domainFilter && options.domainFilter.length > 0) {
-        return options.domainFilter.includes(result.domain);
-      }
-
-      return true;
-    });
-  }
-
-  /**
-   * Deduplicate search results
-   */
-  private deduplicateResults(results: SearchResult[]): SearchResult[] {
-    const seen = new Set<string>();
-    return results.filter(result => {
-      const key = `${result.url}:${result.title}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
-
-  /**
-   * Rank results by relevance score
-   */
-  private rankResults(results: SearchResult[]): SearchResult[] {
-    return results.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
-  }
-
-  /**
-   * Extract domain from URL
-   */
-  private extractDomain(url: string): string {
-    try {
-      const parsedUrl = new URL(url);
-      return parsedUrl.hostname;
-    } catch {
-      return 'unknown';
-    }
-  }
-
-  /**
-   * Parse DuckDuckGo HTML search results
-   */
   private parseDuckDuckGoHtml(html: string, maxResults: number): SearchResult[] {
     const results: SearchResult[] = [];
-    
-    // Simple regex-based parsing of DuckDuckGo HTML results
-    // This is a basic implementation - could be enhanced with proper HTML parsing
-    const resultPattern = new RegExp('<div class="result[^"]*"[^>]*>.*?<a[^>]+href="([^"]+)"[^>]*>([^<]+)</a>.*?<div class="snippet[^"]*"[^>]*>([^<]+)</div>', 'gs');
+    const resultPattern = /<div class="result[^"]*"[^>]*>.*?<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>.*?<a class="result__snippet"[^>]*>([^<]+)<\/a>/gs;
     
     let match;
     let count = 0;
@@ -326,41 +263,41 @@ export class WebSearchManager {
       const [, url, title, snippet] = match;
       
       if (url && title && snippet) {
+        const cleanedUrl = this.cleanUrl(url);
         results.push({
           title: this.cleanHtmlText(title),
-          url: this.cleanUrl(url),
+          url: cleanedUrl,
           snippet: this.cleanHtmlText(snippet),
-          domain: this.extractDomain(this.cleanUrl(url)),
-          timestamp: Date.now(),
-          relevanceScore: Math.max(0.8 - (count * 0.1), 0.1),
-          source: 'duckduckgo'
+          domain: this.extractDomain(cleanedUrl),
+          timestamp: new Date(),
+          score: Math.max(0.8 - (count * 0.1), 0.1),
+          source: 'duckduckgo',
+          relevanceScore: Math.max(0.8 - (count * 0.1), 0.1)
         });
         count++;
       }
     }
     
-    // If regex parsing fails, return a fallback result
-    if (results.length === 0) {
-      results.push({
-        title: 'DuckDuckGo Search Results',
-        url: `https://duckduckgo.com/?q=${encodeURIComponent('Langflow workflow')}`,
-        snippet: 'Search results are available on DuckDuckGo. Click to view full results.',
-        domain: 'duckduckgo.com',
-        timestamp: Date.now(),
-        relevanceScore: 0.7,
-        source: 'duckduckgo'
-      });
-    }
-    
     return results;
   }
 
-  /**
-   * Clean HTML text by removing tags and entities
-   */
+  private cleanUrl(url: string): string {
+    if (url.startsWith('/l/?kh=-1&uddg=')) {
+      const match = url.match(/uddg=([^&]+)/);
+      if (match) {
+        try {
+          return decodeURIComponent(match[1]);
+        } catch {
+          // fallback to original url
+        }
+      }
+    }
+    return url;
+  }
+
   private cleanHtmlText(text: string): string {
     return text
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/<[^>]*>/g, '')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
@@ -370,32 +307,189 @@ export class WebSearchManager {
       .trim();
   }
 
-  /**
-   * Clean and validate URL
-   */
-  private cleanUrl(url: string): string {
-    // DuckDuckGo sometimes uses redirect URLs
-    if (url.startsWith('/l/?kh=-1&uddg=')) {
-      const match = url.match(/uddg=([^&]+)/);
-      if (match) {
-        try {
-          return decodeURIComponent(match[1]);
-        } catch {
-          return url;
+  private extractDomain(url: string): string {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  private deduplicateResults(results: SearchResult[]): SearchResult[] {
+    const seen = new Set<string>();
+    const deduplicated: SearchResult[] = [];
+    
+    for (const result of results) {
+      const normalizedUrl = result.url.replace(/\/+$/, '').toLowerCase();
+      const normalizedTitle = result.title.toLowerCase().trim();
+      const key = `${normalizedUrl}:${normalizedTitle.substring(0, 50)}`;
+      
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(result);
+      } else {
+        const existingIndex = deduplicated.findIndex(r => r.url.replace(/\/+$/, '').toLowerCase() === normalizedUrl);
+        if (existingIndex >= 0 && deduplicated[existingIndex].score < result.score) {
+          deduplicated[existingIndex] = result;
         }
       }
     }
+    return deduplicated;
+  }
+
+  private rankResults(results: SearchResult[], query: string): SearchResult[] {
+    const queryTerms = query.toLowerCase().split(/\s+/);
     
-    // Ensure URL is absolute
-    if (url.startsWith('//')) {
-      return 'https:' + url;
-    } else if (url.startsWith('/')) {
-      return 'https://duckduckgo.com' + url;
+    return results
+      .map(result => {
+        let relevanceScore = result.score;
+        const titleMatches = queryTerms.filter(term => result.title.toLowerCase().includes(term)).length;
+        const snippetMatches = queryTerms.filter(term => result.snippet.toLowerCase().includes(term)).length;
+        
+        const titleBoost = (titleMatches / queryTerms.length) * 0.3;
+        const snippetBoost = (snippetMatches / queryTerms.length) * 0.2;
+        
+        const ageInHours = (Date.now() - result.timestamp.getTime()) / (1000 * 60 * 60);
+        const recencyBoost = Math.max(0, (24 - ageInHours) / 24) * 0.1;
+        
+        const sourceBoost = result.source === 'tavily' ? 0.1 : 0;
+        
+        relevanceScore += titleBoost + snippetBoost + recencyBoost + sourceBoost;
+        
+        return { ...result, score: Math.min(relevanceScore, 1.0) };
+      })
+      .sort((a, b) => b.score - a.score);
+  }
+
+  private applyFilters(results: SearchResult[], options: SearchOptions): SearchResult[] {
+    let filtered = results;
+    
+    if (options.domainFilter?.length) {
+      filtered = filtered.filter(result => options.domainFilter!.some(domain => result.domain.includes(domain)));
     }
     
-    return url;
+    if (options.excludeDomains?.length) {
+      filtered = filtered.filter(result => !options.excludeDomains!.some(domain => result.domain.includes(domain)));
+    }
+    
+    if (options.timeRange && options.timeRange !== 'all') {
+      const now = Date.now();
+      const timeRanges = {
+        day: 24 * 60 * 60 * 1000,
+        week: 7 * 24 * 60 * 60 * 1000,
+        month: 30 * 24 * 60 * 60 * 1000,
+        year: 365 * 24 * 60 * 60 * 1000
+      };
+      
+      const cutoff = now - timeRanges[options.timeRange];
+      filtered = filtered.filter(result => result.timestamp.getTime() > cutoff);
+    }
+    
+    return filtered;
+  }
+
+  private generateAttribution(results: SearchResult[]): string[] {
+    const attributions: string[] = [];
+    const sourceGroups = new Map<string, SearchResult[]>();
+    
+    results.forEach(result => {
+      if (!sourceGroups.has(result.source)) {
+        sourceGroups.set(result.source, []);
+      }
+      sourceGroups.get(result.source)!.push(result);
+    });
+    
+    sourceGroups.forEach((sourceResults, source) => {
+      const domains = [...new Set(sourceResults.map(r => r.domain))];
+      const sourceLabel = source === 'tavily' ? 'Tavily' : 'DuckDuckGo';
+      
+      if (domains.length === 1) {
+        attributions.push(`${sourceLabel}: ${domains[0]} (${sourceResults.length} result${sourceResults.length > 1 ? 's' : ''})`);
+      } else {
+        attributions.push(`${sourceLabel}: ${sourceResults.length} results from ${domains.length} domains`);
+      }
+    });
+    
+    return attributions;
+  }
+
+  private generateCacheKey(query: string, options: SearchOptions): string {
+    const optionsStr = JSON.stringify(options);
+    return `${query.toLowerCase().trim()}:${optionsStr}`;
+  }
+
+  private getCachedResult(cacheKey: string): CachedSearchResult | null {
+    const cached = this.cache.get(cacheKey);
+    
+    if (cached) {
+      const age = Date.now() - cached.timestamp.getTime();
+      if (age < this.cacheTtl) {
+        return cached;
+      } else {
+        this.cache.delete(cacheKey);
+      }
+    }
+    
+    return null;
+  }
+
+  private cacheResult(cacheKey: string, result: CachedSearchResult): void {
+    this.cache.set(cacheKey, result);
+    
+    if (this.cache.size > 1000) {
+      const oldestKey = this.cache.keys().next().value;
+      this.cache.delete(oldestKey);
+    }
+    
+    this.saveCacheToStorage();
+  }
+
+  private updateMetrics(responseTime: number): void {
+    this.metrics.averageResponseTime = 
+      (this.metrics.averageResponseTime * (this.metrics.totalQueries - 1) + responseTime) / 
+      this.metrics.totalQueries;
+  }
+
+  private saveCacheToStorage(): void {
+    try {
+      const cacheData = Array.from(this.cache.entries()).slice(-100);
+      localStorage.setItem('search-cache', JSON.stringify(cacheData));
+    } catch (error) {
+      console.warn('Failed to save search cache:', error);
+    }
+  }
+
+  private loadCacheFromStorage(): void {
+    try {
+      const stored = localStorage.getItem('search-cache');
+      if (stored) {
+        const cacheData: Array<[string, any]> = JSON.parse(stored);
+        this.cache = new Map(cacheData.map(([key, value]) => [
+          key,
+          {
+            ...value,
+            timestamp: new Date(value.timestamp),
+            results: value.results.map((r: any) => ({
+              ...r,
+              timestamp: new Date(r.timestamp)
+            }))
+          }
+        ]));
+      }
+    } catch (error) {
+      console.warn('Failed to load search cache:', error);
+    }
+  }
+
+  getMetrics(): SearchMetrics {
+    return { ...this.metrics };
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+    localStorage.removeItem('search-cache');
   }
 }
 
-// Export singleton instance
-export const searchManager = new WebSearchManager();
+export const searchManager = new SearchManager();
+
