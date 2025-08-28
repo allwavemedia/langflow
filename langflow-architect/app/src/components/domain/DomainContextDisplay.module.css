@@ -1,0 +1,116 @@
+/* Domain Context Display Styles */
+.domain-confidence-bar {
+  width: 16rem;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+}
+
+.domain-confidence-fill {
+  background-color: #2563eb;
+  border-radius: 9999px;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Dynamic width classes based on confidence levels */
+[data-confidence="0"] .domain-confidence-fill { width: 0%; }
+[data-confidence="1"] .domain-confidence-fill { width: 1%; }
+[data-confidence="2"] .domain-confidence-fill { width: 2%; }
+[data-confidence="3"] .domain-confidence-fill { width: 3%; }
+[data-confidence="4"] .domain-confidence-fill { width: 4%; }
+[data-confidence="5"] .domain-confidence-fill { width: 5%; }
+[data-confidence="6"] .domain-confidence-fill { width: 6%; }
+[data-confidence="7"] .domain-confidence-fill { width: 7%; }
+[data-confidence="8"] .domain-confidence-fill { width: 8%; }
+[data-confidence="9"] .domain-confidence-fill { width: 9%; }
+[data-confidence="10"] .domain-confidence-fill { width: 10%; }
+[data-confidence="11"] .domain-confidence-fill { width: 11%; }
+[data-confidence="12"] .domain-confidence-fill { width: 12%; }
+[data-confidence="13"] .domain-confidence-fill { width: 13%; }
+[data-confidence="14"] .domain-confidence-fill { width: 14%; }
+[data-confidence="15"] .domain-confidence-fill { width: 15%; }
+[data-confidence="16"] .domain-confidence-fill { width: 16%; }
+[data-confidence="17"] .domain-confidence-fill { width: 17%; }
+[data-confidence="18"] .domain-confidence-fill { width: 18%; }
+[data-confidence="19"] .domain-confidence-fill { width: 19%; }
+[data-confidence="20"] .domain-confidence-fill { width: 20%; }
+[data-confidence="21"] .domain-confidence-fill { width: 21%; }
+[data-confidence="22"] .domain-confidence-fill { width: 22%; }
+[data-confidence="23"] .domain-confidence-fill { width: 23%; }
+[data-confidence="24"] .domain-confidence-fill { width: 24%; }
+[data-confidence="25"] .domain-confidence-fill { width: 25%; }
+[data-confidence="26"] .domain-confidence-fill { width: 26%; }
+[data-confidence="27"] .domain-confidence-fill { width: 27%; }
+[data-confidence="28"] .domain-confidence-fill { width: 28%; }
+[data-confidence="29"] .domain-confidence-fill { width: 29%; }
+[data-confidence="30"] .domain-confidence-fill { width: 30%; }
+[data-confidence="31"] .domain-confidence-fill { width: 31%; }
+[data-confidence="32"] .domain-confidence-fill { width: 32%; }
+[data-confidence="33"] .domain-confidence-fill { width: 33%; }
+[data-confidence="34"] .domain-confidence-fill { width: 34%; }
+[data-confidence="35"] .domain-confidence-fill { width: 35%; }
+[data-confidence="36"] .domain-confidence-fill { width: 36%; }
+[data-confidence="37"] .domain-confidence-fill { width: 37%; }
+[data-confidence="38"] .domain-confidence-fill { width: 38%; }
+[data-confidence="39"] .domain-confidence-fill { width: 39%; }
+[data-confidence="40"] .domain-confidence-fill { width: 40%; }
+[data-confidence="41"] .domain-confidence-fill { width: 41%; }
+[data-confidence="42"] .domain-confidence-fill { width: 42%; }
+[data-confidence="43"] .domain-confidence-fill { width: 43%; }
+[data-confidence="44"] .domain-confidence-fill { width: 44%; }
+[data-confidence="45"] .domain-confidence-fill { width: 45%; }
+[data-confidence="46"] .domain-confidence-fill { width: 46%; }
+[data-confidence="47"] .domain-confidence-fill { width: 47%; }
+[data-confidence="48"] .domain-confidence-fill { width: 48%; }
+[data-confidence="49"] .domain-confidence-fill { width: 49%; }
+[data-confidence="50"] .domain-confidence-fill { width: 50%; }
+[data-confidence="51"] .domain-confidence-fill { width: 51%; }
+[data-confidence="52"] .domain-confidence-fill { width: 52%; }
+[data-confidence="53"] .domain-confidence-fill { width: 53%; }
+[data-confidence="54"] .domain-confidence-fill { width: 54%; }
+[data-confidence="55"] .domain-confidence-fill { width: 55%; }
+[data-confidence="56"] .domain-confidence-fill { width: 56%; }
+[data-confidence="57"] .domain-confidence-fill { width: 57%; }
+[data-confidence="58"] .domain-confidence-fill { width: 58%; }
+[data-confidence="59"] .domain-confidence-fill { width: 59%; }
+[data-confidence="60"] .domain-confidence-fill { width: 60%; }
+[data-confidence="61"] .domain-confidence-fill { width: 61%; }
+[data-confidence="62"] .domain-confidence-fill { width: 62%; }
+[data-confidence="63"] .domain-confidence-fill { width: 63%; }
+[data-confidence="64"] .domain-confidence-fill { width: 64%; }
+[data-confidence="65"] .domain-confidence-fill { width: 65%; }
+[data-confidence="66"] .domain-confidence-fill { width: 66%; }
+[data-confidence="67"] .domain-confidence-fill { width: 67%; }
+[data-confidence="68"] .domain-confidence-fill { width: 68%; }
+[data-confidence="69"] .domain-confidence-fill { width: 69%; }
+[data-confidence="70"] .domain-confidence-fill { width: 70%; }
+[data-confidence="71"] .domain-confidence-fill { width: 71%; }
+[data-confidence="72"] .domain-confidence-fill { width: 72%; }
+[data-confidence="73"] .domain-confidence-fill { width: 73%; }
+[data-confidence="74"] .domain-confidence-fill { width: 74%; }
+[data-confidence="75"] .domain-confidence-fill { width: 75%; }
+[data-confidence="76"] .domain-confidence-fill { width: 76%; }
+[data-confidence="77"] .domain-confidence-fill { width: 77%; }
+[data-confidence="78"] .domain-confidence-fill { width: 78%; }
+[data-confidence="79"] .domain-confidence-fill { width: 79%; }
+[data-confidence="80"] .domain-confidence-fill { width: 80%; }
+[data-confidence="81"] .domain-confidence-fill { width: 81%; }
+[data-confidence="82"] .domain-confidence-fill { width: 82%; }
+[data-confidence="83"] .domain-confidence-fill { width: 83%; }
+[data-confidence="84"] .domain-confidence-fill { width: 84%; }
+[data-confidence="85"] .domain-confidence-fill { width: 85%; }
+[data-confidence="86"] .domain-confidence-fill { width: 86%; }
+[data-confidence="87"] .domain-confidence-fill { width: 87%; }
+[data-confidence="88"] .domain-confidence-fill { width: 88%; }
+[data-confidence="89"] .domain-confidence-fill { width: 89%; }
+[data-confidence="90"] .domain-confidence-fill { width: 90%; }
+[data-confidence="91"] .domain-confidence-fill { width: 91%; }
+[data-confidence="92"] .domain-confidence-fill { width: 92%; }
+[data-confidence="93"] .domain-confidence-fill { width: 93%; }
+[data-confidence="94"] .domain-confidence-fill { width: 94%; }
+[data-confidence="95"] .domain-confidence-fill { width: 95%; }
+[data-confidence="96"] .domain-confidence-fill { width: 96%; }
+[data-confidence="97"] .domain-confidence-fill { width: 97%; }
+[data-confidence="98"] .domain-confidence-fill { width: 98%; }
+[data-confidence="99"] .domain-confidence-fill { width: 99%; }
+[data-confidence="100"] .domain-confidence-fill { width: 100%; }
