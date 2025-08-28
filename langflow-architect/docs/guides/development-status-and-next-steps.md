@@ -30,27 +30,67 @@ Please familiarize yourself with the new documentation structure.
 
 ## Next Steps for Development
 
-With the foundational work for the MCP Marketplace nearing completion, the next phase of development should focus on resolving critical story issues and continuing to build out the core capabilities of the Langflow Architect.
+With the foundational work for the MCP Marketplace nearing completion, significant progress has been made on addressing critical story issues and preparing for the next phase of development.
 
 ### Priority 1: Complete Story 6.1
 
 The immediate priority is to complete the implementation of Story 6.1. This will provide the necessary infrastructure for the upcoming work in Epic 6.4 and deliver immediate value to our users.
 
-### Priority 2: Address Superseded Epics and Enhance Technical Details
+### Priority 2: Address Superseded Epics and Enhance Technical Details ✅ COMPLETED
 
-Once Story 6.1 is complete, the focus should shift to the following, as outlined in the `systematic-story-validation-improvement-plan.md`:
+**Epic 2 Migration - ✅ COMPLETED**
+All relevant concepts from the superseded Epic 2 have been properly documented with migration guidance to Epic 5 and other active epics. The documentation now includes:
+- Clear superseded notices with developer guidance to avoid confusion
+- Detailed migration mapping for all 6 Epic 2 stories to their Epic 5 equivalents
+- Specific references to the Epic Consolidation Guide for comprehensive migration details
+- Updated status markers to prevent accidental implementation of superseded stories
 
-1.  **Migrate Epic 2:** Ensure all relevant concepts from the superseded Epic 2 are properly migrated to or accounted for in Epic 5 and other active epics. This includes updating any remaining references to Epic 2 in our documentation and codebase.
-2.  **Enhance Epic 6.4:** The stories in `epic-6-phase-4-domain-expertise.md` require more technical detail to be development-ready. The **Architect** should work with the **Developer** to add component specifications, environment configurations, and detailed testing scenarios.
+**Epic 6.4 Enhancement - ✅ COMPLETED**
+The stories in `epic-6-phase-4-domain-expertise.md` now include comprehensive technical details and are development-ready. Enhancements include:
+- **Component Specifications**: Detailed file paths, dependencies, and integration patterns
+- **Environment Configuration**: Specific configuration files, MCP server mappings, and AI settings
+- **Testing Scenarios**: Comprehensive unit, integration, and E2E test specifications
+- **Performance Requirements**: Specific timing and resource usage targets
+- **AI Integration Patterns**: GPT-4 function calling, context management, and prompt engineering details
+
+### Current Development Status
+
+**✅ READY FOR IMPLEMENTATION**
+- Epic 6.4 stories are now development-ready with complete technical specifications
+- Epic 2 migration guidance eliminates confusion and provides clear implementation paths
+- BMad workflow (`*workflow brownfield-fullstack`) is properly configured and available
 
 ### Recommended Workflow
 
-To tackle these next steps, the team should use the following BMad workflow:
+The team can now proceed with Epic 6.4 implementation using the following BMad workflow:
 
-1.  **`*agent pm`**: The Product Manager should create and prioritize the tasks for the Epic 2 migration and Epic 6.4 enhancement.
-2.  **`*agent architect`**: The Architect will be responsible for designing the technical implementation for the Epic 6.4 stories.
-3.  **`*agent dev`**: The Developer will implement the required changes.
+1.  **`*agent pm`**: Product Manager to prioritize Epic 6.4 stories and create implementation tasks
+2.  **`*agent architect`**: Architect to review technical specifications and finalize implementation approach
+3.  **`*agent dev`**: Developer to implement the enhanced Epic 6.4 stories using the detailed specifications
 
-We will use the `*workflow brownfield-fullstack` to manage this enhancement process.
+Use `*workflow brownfield-fullstack` to manage this enhancement process systematically.
 
-By following this plan, we can systematically improve the quality of our user stories, unblock future development, and continue to build a powerful and reliable Langflow Architect.
+With the enhanced documentation and clear technical specifications, development teams can now proceed with confidence, knowing that all critical story validation issues have been resolved and Epic 6.4 is fully prepared for implementation.
+
+## BMad Workflow Integration
+
+The Langflow Architect project is fully configured with the BMad development methodology. Teams can leverage the following workflow commands:
+
+### Quick Start Commands
+```bash
+# For Epic 6.4 implementation (recommended approach)
+*workflow brownfield-fullstack
+
+# For individual story work
+*agent pm        # Product management and task prioritization
+*agent architect # Technical design and architecture decisions  
+*agent dev       # Implementation and development work
+```
+
+### Workflow Documentation
+- **Full Workflow Guide**: See `.bmad-core/enhanced-ide-development-workflow.md` for step-by-step development process
+- **Agent Configurations**: Located in `web-bundles/agents/` directory
+- **Available Tasks**: See `.bmad-core/tasks/` for specific development tasks
+
+### Integration with Enhanced Documentation
+The enhanced Epic 6.4 specifications include BMad command references for each story, enabling seamless integration between planning and implementation phases.
