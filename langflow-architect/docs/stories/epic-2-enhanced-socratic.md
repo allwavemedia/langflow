@@ -12,6 +12,8 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 **As a user**, I want comprehensive workflow categories with detailed options powered by CopilotKit actions, so that I can easily find the perfect starting point for my specific needs.
 
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.1: Context Understanding Engine Implementation](epic-5-enhanced-agent-intelligence.md#story-51-context-understanding-engine-implementation)**. The generic category framework has been enhanced with a sophisticated **Context Engine** that provides domain-aware classification, technology stack detection, and automatic activation of relevant knowledge bases, offering a far more intelligent and tailored user experience.
+
 ### Acceptance Criteria:
 
 - **AC1**: CopilotKit actions present 8+ primary workflow categories with clear descriptions
@@ -42,6 +44,8 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ## Story 2.2: Intelligent Question Generation
 
 **As a user**, I want the agent to ask increasingly specific and contextually relevant questions, so that my workflow requirements become crystal clear through guided discovery.
+
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.6: Advanced Context-Aware Question Generation](epic-5-enhanced-agent-intelligence.md#story-56-advanced-context-aware-question-generation)**. The new architecture replaces generic question generation with a domain-aware engine that demonstrates deep expertise, explores multi-dimensional requirements (technical, business, compliance), and identifies gaps for a true expert consultation experience.
 
 ### Acceptance Criteria:
 
@@ -74,6 +78,8 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 **As a user**, I want to see my workflow taking shape in real-time as I answer questions, so that I can understand and validate the solution being created.
 
+**🔄 MIGRATION NOTE:** This capability has been integrated into an **Enhanced Epic 3**. The real-time construction is now powered by domain-aware JSON generation, which includes compliance and security validation, providing a more robust and reliable preview of the workflow.
+
 ### Acceptance Criteria:
 
 - **AC1**: Workflow preview updates automatically after each user response
@@ -104,6 +110,8 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ## Story 2.4: Advanced Context Management
 
 **As a developer**, I want sophisticated conversation context management, so that the agent maintains coherent long conversations and can reference previous decisions effectively.
+
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.1: Context Understanding Engine Implementation](epic-5-enhanced-agent-intelligence.md#story-51-context-understanding-engine-implementation)**. The simple context management has been replaced by a powerful **Context Engine** with advanced conversation memory, semantic understanding, and dynamic integration with MCP servers for persistent, domain-aware context.
 
 ### Acceptance Criteria:
 
@@ -136,6 +144,8 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 
 **As a user**, I want the agent to adapt its communication style and question complexity to match my technical background, so that I'm neither overwhelmed nor under-challenged.
 
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.4: Enhanced Prompt Engineering with External Context](epic-5-enhanced-agent-intelligence.md#story-54-enhanced-prompt-engineering-with-external-context)**. The new **Prompt Engineering System** provides more sophisticated adaptation by dynamically adjusting prompt complexity based on both user expertise and domain-specific context, ensuring a more tailored and effective conversation.
+
 ### Acceptance Criteria:
 
 - **AC1**: Agent detects user's technical expertise level from early responses
@@ -166,6 +176,8 @@ This epic builds advanced conversational capabilities using CopilotKit actions, 
 ## Story 2.6: Decision Point Management
 
 **As a user**, I want clear guidance when multiple valid options exist for my workflow, so that I can make informed decisions or have the agent choose the best option for me.
+
+**🔄 MIGRATION NOTE:** This story is superseded by **[Story 5.6: Advanced Context-Aware Question Generation](epic-5-enhanced-agent-intelligence.md#story-56-advanced-context-aware-question-generation)**. The new architecture enhances decision point management by using its **Advanced Question Generation** capabilities to explore alternative solutions, considering compliance, security, and domain best practices to provide comprehensive pros and cons.
 
 ### Acceptance Criteria:
 
