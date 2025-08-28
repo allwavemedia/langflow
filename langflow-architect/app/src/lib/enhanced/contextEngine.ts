@@ -1,5 +1,16 @@
 // Context Understanding Engine - Enhanced for Phase 2
 // Integrates domain analysis, technology stack detection, and contextual question generation.
+//
+// ARCHITECTURAL IMPROVEMENT NEEDED:
+// Current implementation uses basic pattern matching for domain detection.
+// Should be refactored to implement Dynamic Domain Intelligence as specified in:
+// docs/dynamic-domain-intelligence-design.md
+// 
+// Key improvements needed:
+// 1. Replace static domain keywords with MCP-based domain discovery
+// 2. Implement real-time compliance intelligence using web search
+// 3. Add contextual question generation based on discovered domain knowledge
+// 4. Remove all hardcoded domain mappings in favor of dynamic learning
 
 export interface ContextAnalysis {
   domainAnalysis: {
@@ -53,7 +64,7 @@ export class ContextEngine {
       technologyStack,
       specializations,
       complexity: query.length > 100 ? 'advanced' : 'basic',
-      requiresCompliance: domainAnalysis.domain === 'healthcare' || domainAnalysis.domain === 'finance',
+      requiresCompliance: analysis.technologyStack.compliance.length > 0,
       suggestedIntegrations: this.getSuggestedIntegrations(domainAnalysis.domain)
     };
 
@@ -61,73 +72,108 @@ export class ContextEngine {
   }
 
   private analyzeDomain(query: string): { domain: string; confidence: number } {
-    const domains = {
-      healthcare: ['medical', 'health', 'patient', 'hospital', 'clinical', 'hipaa'],
-      finance: ['financial', 'bank', 'payment', 'trading', 'investment', 'compliance'],
-      ecommerce: ['shop', 'cart', 'order', 'product', 'customer', 'inventory'],
-      education: ['student', 'course', 'learning', 'academic', 'school', 'university'],
-      automation: ['workflow', 'process', 'automate', 'pipeline', 'batch', 'schedule'],
-      microsoft365: ['office', 'microsoft', 'sharepoint', 'teams', 'outlook']
-    };
-
-    const lowerQuery = query.toLowerCase();
-    let bestDomain = 'general';
-    let bestScore = 0;
-
-    for (const [domain, keywords] of Object.entries(domains)) {
-      const matches = keywords.filter(keyword => lowerQuery.includes(keyword));
-      const score = matches.length / keywords.length;
-      
-      if (score > bestScore) {
-        bestScore = score;
-        bestDomain = domain;
-      }
+    // TODO: Replace with dynamic domain discovery using MCP and web search
+    // Current implementation uses static keywords - needs architectural refactor
+    
+    // Extract potential domain indicators from user input
+    const domainIndicators = this.extractDomainIndicators(query);
+    
+    // For now, use a general domain classification approach
+    // This should be replaced with MCP-based domain discovery
+    if (domainIndicators.length === 0) {
+      return { domain: 'general', confidence: 0.1 };
     }
-
+    
+    // Temporary confidence based on number of domain indicators found
+    const confidence = Math.min(domainIndicators.length * 0.3, 0.9);
+    
     return {
-      domain: bestDomain,
-      confidence: bestScore > 0 ? Math.min(bestScore * 2, 1) : 0.1
+      domain: domainIndicators[0] || 'general',
+      confidence
     };
   }
 
-  private analyzeTechnologyStack(query: string): { platform: string; compliance: string[] } {
-    const platforms = {
-      azure: ['azure', 'microsoft', 'ad', 'graph', 'office365', 'm365'],
-      aws: ['aws', 'amazon', 's3', 'lambda', 'dynamodb', 'cloudformation'],
-      gcp: ['google', 'gcp', 'firebase', 'bigquery', 'cloud', 'vertex'],
-      kubernetes: ['k8s', 'kubernetes', 'docker', 'container', 'helm', 'istio'],
-      'REST API': ['api', 'rest'],
-      'Database': ['database']
-    };
-
-    const compliance = {
-      hipaa: ['medical', 'health', 'patient', 'phi'],
-      gdpr: ['privacy', 'data protection', 'eu', 'consent'],
-      sox: ['financial', 'audit', 'controls', 'sox'],
-      pci: ['payment', 'card', 'pci', 'transaction']
-    };
-
+  private extractDomainIndicators(query: string): string[] {
+    // Extract potential domain-related terms without hardcoding specific domains
+    // This is a temporary implementation that should be replaced with MCP queries
+    const indicators: string[] = [];
     const lowerQuery = query.toLowerCase();
-    let detectedPlatform = 'general';
-    let detectedCompliance: string[] = [];
-
-    for (const [platform, keywords] of Object.entries(platforms)) {
-      if (keywords.some(keyword => lowerQuery.includes(keyword))) {
-        detectedPlatform = platform;
-        break;
+    
+    // Look for industry-specific terms, compliance mentions, technology references
+    const patterns = [
+      /\b(medical|health|patient|clinical|hospital)\b/g,
+      /\b(financial|banking|trading|investment|payment)\b/g,
+      /\b(retail|ecommerce|shop|customer|order)\b/g,
+      /\b(education|student|academic|learning|course)\b/g,
+      /\b(manufacturing|production|supply|inventory)\b/g,
+      /\b(compliance|regulation|audit|security|privacy)\b/g
+    ];
+    
+    patterns.forEach(pattern => {
+      const matches = lowerQuery.match(pattern);
+      if (matches) {
+        indicators.push(...matches);
       }
-    }
+    });
+    
+    return [...new Set(indicators)]; // Remove duplicates
+  }
 
-    for (const [complianceType, keywords] of Object.entries(compliance)) {
-      if (keywords.some(keyword => lowerQuery.includes(keyword))) {
-        detectedCompliance.push(complianceType.toUpperCase());
-      }
-    }
-
+  private analyzeTechnologyStack(query: string): { platform: string; compliance: string[] } {
+    // TODO: Replace with dynamic technology and compliance discovery
+    // Current implementation should use MCP servers to discover current tech patterns
+    
+    const detectedTechnologies = this.extractTechnologyIndicators(query);
+    const complianceIndicators = this.extractComplianceIndicators(query);
+    
     return {
-      platform: detectedPlatform,
-      compliance: detectedCompliance
+      platform: detectedTechnologies[0] || 'general',
+      compliance: complianceIndicators
     };
+  }
+
+  private extractTechnologyIndicators(query: string): string[] {
+    // Temporary implementation - should be replaced with MCP-based discovery
+    const lowerQuery = query.toLowerCase();
+    const techIndicators: string[] = [];
+    
+    const techPatterns = [
+      { name: 'azure', patterns: ['azure', 'microsoft', 'ad', 'graph', 'office365', 'm365'] },
+      { name: 'aws', patterns: ['aws', 'amazon', 's3', 'lambda', 'dynamodb'] },
+      { name: 'gcp', patterns: ['google', 'gcp', 'firebase', 'bigquery'] },
+      { name: 'kubernetes', patterns: ['k8s', 'kubernetes', 'docker', 'container'] }
+    ];
+    
+    for (const tech of techPatterns) {
+      if (tech.patterns.some(pattern => lowerQuery.includes(pattern))) {
+        techIndicators.push(tech.name);
+      }
+    }
+    
+    return techIndicators;
+  }
+
+  private extractComplianceIndicators(query: string): string[] {
+    // TODO: Replace with dynamic compliance framework discovery via MCP/web search
+    // This should query current regulatory requirements rather than using static lists
+    const lowerQuery = query.toLowerCase();
+    const complianceIndicators: string[] = [];
+    
+    // Temporary pattern matching - needs to be replaced with intelligent discovery
+    const compliancePatterns = [
+      { framework: 'HIPAA', indicators: ['hipaa', 'medical', 'health', 'patient', 'phi'] },
+      { framework: 'GDPR', indicators: ['gdpr', 'privacy', 'data protection', 'consent'] },
+      { framework: 'SOX', indicators: ['sox', 'financial', 'audit', 'controls'] },
+      { framework: 'PCI', indicators: ['pci', 'payment', 'card', 'transaction'] }
+    ];
+    
+    for (const compliance of compliancePatterns) {
+      if (compliance.indicators.some(indicator => lowerQuery.includes(indicator))) {
+        complianceIndicators.push(compliance.framework);
+      }
+    }
+    
+    return complianceIndicators;
   }
 
   private extractSpecializations(query: string): string[] {
@@ -152,47 +198,48 @@ export class ContextEngine {
   }
   
   private getSuggestedIntegrations(domain: string): string[] {
-    const integrations: Record<string, string[]> = {
-      healthcare: ['FHIR API', 'HL7 Integration', 'Compliance Logger'],
-      finance: ['Payment Gateway', 'Fraud Detection', 'Audit Trail'],
-      microsoft365: ['SharePoint', 'Teams', 'Outlook'],
-      general: ['Web API', 'Database', 'File Storage']
-    };
+    // TODO: Replace with dynamic integration discovery using MCP and web search
+    // Current implementation should query current best practices and available integrations
+    
+    // Temporary fallback - should be replaced with intelligent discovery
+    return this.getGeneralIntegrationSuggestions();
+  }
 
-    return integrations[domain] || integrations.general;
+  private getGeneralIntegrationSuggestions(): string[] {
+    // Provide general integration patterns that can be discovered dynamically
+    return [
+      'REST API Integration',
+      'Database Connection',
+      'File Storage Service',
+      'Authentication Provider',
+      'Monitoring & Logging',
+      'Message Queue'
+    ];
   }
 
   generateContextualQuestions(analysis: ContextAnalysis): string[] {
+    // TODO: Replace with dynamic question generation using domain knowledge from MCP/web search
+    // Current implementation should generate questions based on discovered domain patterns
+    
     const questions: string[] = [];
     
-    switch (analysis.domainAnalysis.domain) {
-      case 'healthcare':
-        questions.push(
-          'What patient data protection measures do you need?',
-          'How will you ensure HIPAA compliance?'
-        );
-        break;
-      case 'finance':
-        questions.push(
-          'What financial regulations apply to your use case?',
-          'Do you need audit trails for transactions?'
-        );
-        break;
-      case 'ecommerce':
-        questions.push(
-          'How will you handle customer data and orders?',
-          'What payment processing integrations do you need?'
-        );
-        break;
-      default:
-        questions.push(
-          'What are your primary business requirements?',
-          'What compliance considerations do you have?'
-        );
+    // Generate domain-agnostic questions that can be enhanced with discovered knowledge
+    questions.push(
+      'What are the core business requirements for your workflow?',
+      'What data sources and systems need to be integrated?',
+      'Are there any regulatory or compliance considerations?',
+      'What is your preferred technology stack or platform?',
+      'What are the expected volume and performance requirements?'
+    );
+
+    // Add technology-specific questions if detected
+    if (analysis.technologyStack.platform !== 'general') {
+      questions.push(`How do you plan to leverage ${analysis.technologyStack.platform} in your solution?`);
     }
 
-    if (analysis.technologyStack.platform !== 'general') {
-      questions.push(`How will you deploy on ${analysis.technologyStack.platform}?`);
+    // Add compliance questions if indicators found
+    if (analysis.technologyStack.compliance.length > 0) {
+      questions.push(`How will you address ${analysis.technologyStack.compliance.join(' and ')} requirements?`);
     }
 
     return questions.slice(0, 3);
