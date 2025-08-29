@@ -4,6 +4,7 @@
 import { contextEngine } from './contextEngine';
 import { mcpManager } from './mcpManager';
 import { searchManager } from './searchManager';
+import { multiSourceKnowledge } from './multiSourceKnowledge';
 
 // Define search result interface to match SearchManager
 interface SearchResult {
@@ -191,33 +192,36 @@ export class DomainDiscoveryEngine {
 
   // Use web search to validate and enhance domain understanding
   async enhanceWithWebSearch(domainContext: DomainContext): Promise<EnhancedDomainContext> {
-    const baseKnowledge = await this.queryDomainKnowledge([domainContext.domain]);
+  const baseKnowledge = await this.queryDomainKnowledge([domainContext.domain]);
     
     try {
-      // Search for current domain best practices and patterns
-      const searchQuery = `${domainContext.domain} best practices workflows integration patterns`;
-      const searchResults = await searchManager.search(searchQuery, {
-        maxResults: 5,
-        domainFilter: ['github.com', 'docs.microsoft.com', 'stackoverflow.com'],
-        timeRange: 'year'
-      });
-
-      // Extract knowledge from search results
-      const webKnowledge = this.extractKnowledgeFromSearch(searchResults.results);
+      // Use Multi-Source Knowledge aggregator for richer synthesis
+      const msResult = await multiSourceKnowledge.queryMultipleSources(
+        `${domainContext.domain} workflows patterns best practices`,
+        `indicators: ${domainContext.indicators.join(', ')}`,
+        { domain: domainContext.domain, maxWebResults: 5 }
+      );
+      const webKnowledge = this.extractKnowledgeFromSearch(
+        (await searchManager.search(
+          `${domainContext.domain} best practices workflows integration patterns`,
+          { maxResults: 5, domainFilter: ['github.com', 'docs.microsoft.com', 'stackoverflow.com'], timeRange: 'year' }
+        )).results
+      );
       
       // Merge with base knowledge
       const enhancedKnowledge: DomainKnowledge = {
         ...baseKnowledge,
-        concepts: [...new Set([...baseKnowledge.concepts, ...(webKnowledge.concepts || [])])],
-        technologies: [...new Set([...baseKnowledge.technologies, ...(webKnowledge.technologies || [])])],
-        bestPractices: [...new Set([...baseKnowledge.bestPractices, ...(webKnowledge.bestPractices || [])])],
-        sources: [...baseKnowledge.sources, 'web-search']
+        concepts: [...new Set([...baseKnowledge.concepts, ...(webKnowledge.concepts || []), ...(msResult.content.concepts || [])])],
+        technologies: [...new Set([...baseKnowledge.technologies, ...(webKnowledge.technologies || []), ...(msResult.content.technologies || [])])],
+        bestPractices: [...new Set([...baseKnowledge.bestPractices, ...(webKnowledge.bestPractices || []), ...(msResult.content.bestPractices || [])])],
+        commonPatterns: [...new Set([...(baseKnowledge.commonPatterns || []), ...(msResult.content.patterns || [])])],
+        sources: [...baseKnowledge.sources, 'web-search', 'multi-source']
       };
 
       // Detect related domains
       const relatedDomains = this.detectRelatedDomains(enhancedKnowledge);
 
-      const enhancedContext: EnhancedDomainContext = {
+  const enhancedContext: EnhancedDomainContext = {
         ...domainContext,
         knowledge: enhancedKnowledge,
         relatedDomains,
@@ -225,7 +229,7 @@ export class DomainDiscoveryEngine {
         complianceFrameworks: this.detectComplianceFrameworks(enhancedKnowledge)
       };
 
-      return enhancedContext;
+  return enhancedContext;
 
     } catch (error) {
       console.warn(`Web search enhancement failed:`, error);
