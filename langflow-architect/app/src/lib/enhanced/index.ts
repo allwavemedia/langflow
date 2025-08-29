@@ -9,6 +9,9 @@ export { mcpManager } from './mcpManager';
 // Search Manager
 export { searchManager, SearchManager } from './searchManager';
 
+// Multi-Source Knowledge Integration
+export { multiSourceKnowledge, MultiSourceKnowledge } from './multiSourceKnowledge';
+
 // MCP Tool Utilities - Based on CopilotKit Official Patterns
 export {
   generateMcpToolInstructions,
