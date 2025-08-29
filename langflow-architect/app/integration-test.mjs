@@ -5,12 +5,11 @@
  * Tests all features of Stories 5.3-5.5 with mock data
  */
 
-import { readFileSync as _readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join as _join } from 'path';
+// import { fileURLToPath } from 'url';
+// import { dirname } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
 
 // Mock environment
 process.env.NODE_ENV = 'test';
@@ -246,7 +245,7 @@ async function testErrorHandling() {
       maxResults: 0
     });
     assert(result.results.length === 0, 'Should handle empty queries gracefully');
-  } catch (_error) {
+  } catch {
     // Expected for some edge cases
   }
 

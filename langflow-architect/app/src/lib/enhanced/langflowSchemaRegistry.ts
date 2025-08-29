@@ -20,7 +20,7 @@ interface ComponentInput {
   displayName: string;
   type: string;
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   options?: string[];
   description?: string;
 }
@@ -66,7 +66,7 @@ interface ValidationResult {
 }
 
 interface SchemaCache {
-  schemas: Map<string, any>;
+  schemas: Map<string, unknown>;
   components: Map<string, LangflowComponent>;
   validators: Map<string, ValidateFunction>;
   lastUpdated: Date;
@@ -183,7 +183,8 @@ export class LangflowSchemaRegistry {
           schemas.forEach(schema => {
             const schemaId = this.generateSchemaId(schema.path || entry.path);
             this.cache.schemas.set(schemaId, schema.schema);
-            this.cache.validators.set(schemaId, this.ajv.compile(schema.schema));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.cache.validators.set(schemaId, this.ajv.compile(schema.schema as any));
             extractedCount++;
           });
         }
@@ -276,6 +277,7 @@ export class LangflowSchemaRegistry {
   }
 
   private extractOutputsFromMarkdown(_content: string): ComponentOutput[] {
+    void _content;
     // Similar logic to inputs but for outputs
     return [
       {
@@ -296,7 +298,7 @@ export class LangflowSchemaRegistry {
       try {
         const jsonMatch = matches[0].replace(/```json\s*|\s*```/g, '');
         return JSON.parse(jsonMatch);
-      } catch (_error) {
+      } catch {
         // Ignore parsing errors
       }
     }
@@ -304,8 +306,8 @@ export class LangflowSchemaRegistry {
     return {};
   }
 
-  private extractSchemasFromApiDocs(entry: DocumentationEntry): Array<{ path: string; schema: any }> {
-    const schemas: Array<{ path: string; schema: any }> = [];
+  private extractSchemasFromApiDocs(entry: DocumentationEntry): Array<{ path: string; schema: unknown }> {
+    const schemas: Array<{ path: string; schema: unknown }> = [];
     
     try {
       if (entry.type === 'json') {
@@ -335,7 +337,7 @@ export class LangflowSchemaRegistry {
     return schemas;
   }
 
-  validateWorkflow(workflowJson: any): ValidationResult {
+  validateWorkflow(workflowJson: unknown): ValidationResult {
     try {
       const validator = this.cache.validators.get('workflow');
       if (!validator) {
@@ -363,8 +365,9 @@ export class LangflowSchemaRegistry {
       }
 
       // Additional Langflow-specific validations
-      if (workflowJson.data?.nodes) {
-        const nodeValidation = this.validateNodes(workflowJson.data.nodes);
+      const wf = workflowJson as { data?: { nodes?: unknown[] } };
+      if (wf.data?.nodes) {
+        const nodeValidation = this.validateNodes(wf.data.nodes);
         errors.push(...nodeValidation.errors);
         warnings.push(...nodeValidation.warnings);
       }
@@ -386,15 +389,16 @@ export class LangflowSchemaRegistry {
     }
   }
 
-  private validateNodes(nodes: any[]): { errors: string[]; warnings: string[] } {
+  private validateNodes(nodes: unknown[]): { errors: string[]; warnings: string[] } {
     const errors: string[] = [];
     const warnings: string[] = [];
     
     for (const node of nodes) {
+      const n = node as { id?: string; type?: string; data?: { node?: { template?: Record<string, unknown> } } };
       // Check if node type is known
-      const component = this.cache.components.get(node.type);
+      const component = this.cache.components.get(n.type || "");
       if (!component) {
-        warnings.push(`Unknown component type: ${node.type}`);
+        warnings.push(`Unknown component type: ${String(n.type)}`);
         continue;
       }
 
@@ -402,8 +406,8 @@ export class LangflowSchemaRegistry {
       if (component.inputs) {
         const requiredInputs = component.inputs.filter(input => input.required);
         for (const requiredInput of requiredInputs) {
-          if (!node.data?.node?.template?.[requiredInput.name]) {
-            errors.push(`Node ${node.id}: Missing required input ${requiredInput.name}`);
+          if (!(n.data?.node?.template?.[requiredInput.name])) {
+            errors.push(`Node ${n.id}: Missing required input ${requiredInput.name}`);
           }
         }
       }
@@ -493,7 +497,8 @@ export class LangflowSchemaRegistry {
         this.cache.validators.clear();
         for (const [id, schema] of this.cache.schemas) {
           try {
-            this.cache.validators.set(id, this.ajv.compile(schema));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.cache.validators.set(id, this.ajv.compile(schema as any));
           } catch (error) {
             console.warn(`Failed to compile schema ${id}:`, error);
           }

@@ -172,7 +172,7 @@ test.describe('Socratic Langflow Architect - Live API Integration', () => {
         const parsedBody = JSON.parse(response.body)
         expect(parsedBody).toHaveProperty('choices')
         expect(Array.isArray(parsedBody.choices)).toBe(true)
-      } catch (_e) {
+      } catch {
         console.warn('Could not parse response body:', response.body)
       }
     }
