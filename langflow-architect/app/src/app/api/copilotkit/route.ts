@@ -693,7 +693,7 @@ const runtime = new CopilotRuntime({
                 `Based on ${contextAnalysis.domainAnalysis.domain} domain analysis, consider using ${availableComponents.length > 0 ? availableComponents[0].displayName : 'standard'} components`,
                 `For ${contextAnalysis.technologyStack.platform} integration, implement appropriate connectors`,
                 contextAnalysis.technologyStack.compliance.length > 0 ? 
-                  `Ensure ${contextAnalysis.technologyStack.compliance.join(', ')} compliance requirements are met` : null
+                  `Ensure ${contextAnalysis.technologyStack.compliance.join(', ')} regulatory requirements are met` : null
               ].filter(Boolean),
               compliance_guidance: contextAnalysis.technologyStack.compliance.map(c => 
                 `${c} compliance: Implement appropriate data protection and audit trails`
@@ -728,7 +728,7 @@ const runtime = new CopilotRuntime({
             suggested_questions: [
               `What specific ${domain} challenges are you trying to solve?`,
               "What are your primary integration requirements?",
-              "What compliance considerations do you have?"
+              "What regulatory or industry-standard considerations do you have?"
             ],
             next_steps: "Let's start with basic workflow structure and enhance it step by step."
           };

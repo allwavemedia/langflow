@@ -11,7 +11,7 @@ interface WorkflowData {
   timestamp: string;
   attribution?: string;
   knowledgeSources?: AttributionSource[];
-  complianceAlerts?: string[];
+  regulatoryHints?: string[];
   confidenceScore?: number;
 }
 
@@ -82,7 +82,7 @@ export default function Home() {
         timestamp: new Date().toISOString(),
         attribution: "Enhanced analysis with web search integration",
         knowledgeSources: [],
-        complianceAlerts: [],
+        regulatoryHints: [],
         confidenceScore: 0.85,
       };
       
@@ -249,11 +249,11 @@ export default function Home() {
                     </span>
                   </div>
                 )}
-                {workflowData.complianceAlerts && workflowData.complianceAlerts.length > 0 && (
+                {workflowData.regulatoryHints && workflowData.regulatoryHints.length > 0 && (
                   <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                    <span className="font-medium text-yellow-800">⚠️ Compliance Alerts:</span>
+                    <span className="font-medium text-yellow-800">⚠️ Regulatory/Standards Hints:</span>
                     <ul className="mt-1 text-sm text-yellow-700">
-                      {workflowData.complianceAlerts.map((alert, index) => (
+                      {workflowData.regulatoryHints.map((alert, index) => (
                         <li key={`alert-${index}-${alert.slice(0,20)}`}>• {alert}</li>
                       ))}
                     </ul>

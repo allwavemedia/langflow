@@ -267,7 +267,7 @@ export function useDomainValidation() {
     // Domain-specific validation logic
     if (activeDomain.domain === 'healthcare' && fieldType === 'data') {
       if (!input.includes('hipaa') && !input.includes('phi')) {
-        suggestions.push('Consider HIPAA compliance for healthcare data');
+        suggestions.push('Consider relevant regulatory or industry-standard requirements for healthcare data');
       }
     }
     
@@ -278,7 +278,7 @@ export function useDomainValidation() {
     }
     
     if (activeDomain.complianceFrameworks?.length && fieldType === 'workflow') {
-      suggestions.push(`Consider compliance requirements: ${activeDomain.complianceFrameworks.join(', ')}`);
+      suggestions.push(`Consider applicable regulatory requirements: ${activeDomain.complianceFrameworks.join(', ')}`);
     }
     
     return { isValid, suggestions };

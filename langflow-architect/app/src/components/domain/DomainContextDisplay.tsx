@@ -135,14 +135,12 @@ export function DomainContextDisplay({
         </div>
       )}
 
-      {/* Compliance Frameworks */}
+      {/* Regulatory/Standards Frameworks */}
       {activeDomain.complianceFrameworks && activeDomain.complianceFrameworks.length > 0 && (
         <div className="space-y-1 mb-3">
           <div className="flex items-center gap-2">
             <span className="text-gray-500">🛡️</span>
-            <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
-              Compliance:
-            </span>
+            <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>Regulatory Considerations:</span>
           </div>
           <div className="flex flex-wrap gap-1">
             {activeDomain.complianceFrameworks.map((framework, index) => (

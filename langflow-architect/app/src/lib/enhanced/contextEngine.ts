@@ -8,7 +8,7 @@
 // 
 // Key improvements needed:
 // 1. Replace static domain keywords with MCP-based domain discovery
-// 2. Implement real-time compliance intelligence using web search
+// 2. Implement real-time regulatory/standards intelligence using web search
 // 3. Add contextual question generation based on discovered domain knowledge
 // 4. Remove all hardcoded domain mappings in favor of dynamic learning
 
@@ -227,7 +227,7 @@ export class ContextEngine {
     questions.push(
       'What are the core business requirements for your workflow?',
       'What data sources and systems need to be integrated?',
-      'Are there any regulatory or compliance considerations?',
+      'Are there any regulatory or industry-standard considerations?',
       'What is your preferred technology stack or platform?',
       'What are the expected volume and performance requirements?'
     );
@@ -280,4 +280,3 @@ export class ContextEngine {
 }
 
 export const contextEngine = new ContextEngine();
-
