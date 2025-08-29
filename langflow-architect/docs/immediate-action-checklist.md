@@ -1,24 +1,18 @@
+> Updates Completed:
+> - Compliance code removed from core (dev) and archived
+> - UI copy neutralized; no active compliance feature implied
+> - CI guard added to prevent reintroduction of compliance code in core
 # Immediate Development Action Checklist
 
 ## 🚀 Ready to Execute - Next Steps
 
-### 1. Code Quality Foundation (Start Today)
+### 1. Code Quality Foundation — COMPLETE
 
-**Command**: `*agent dev *task code-quality-optimization`
-**Priority**: CRITICAL - Must complete before new feature development
+- [x] Zero ESLint warnings in app
+- [x] Type checks clean in build
+- [x] Unused imports/vars removed
 
-**Actions Required**:
-
-- [ ] Fix 16 ESLint warnings (unused vars, explicit any types)
-- [ ] Complete cognitive complexity optimization
-- [ ] Remove all explicit `any` types
-- [ ] Clean up unused imports and variables
-- [ ] Optimize build performance
-
-**Expected Duration**: 2-3 days
-**Validation**: Zero ESLint warnings, clean TypeScript compilation
-
-### 2. Domain Detection System (Week 2)
+### 2. Multi-Source Knowledge Integration (Next) Domain Detection System (Week 2)
 
 **Command**: `*agent analyst *task create-domain-detection-system`
 **Epic**: Story 6.4.1
@@ -33,22 +27,7 @@
 
 **Target**: >90% domain detection accuracy
 
-### 3. Compliance Intelligence (Week 3)
-
-**Command**: `*agent architect *task design-compliance-engine`
-**Epic**: Story 6.4.2
-**Prerequisites**: Domain detection operational
-
-**Core Features**:
-
-- HIPAA, GDPR, SOX, PCI-DSS, FDA validation
-- Real-time compliance warnings
-- Automated compliance documentation
-- Regulatory best practices integration
-
-**Target**: Support 5+ regulatory frameworks
-
-### 4. Advanced Questioning (Week 4)
+ Advanced Questioning (Week 4)
 
 **Command**: `*workflow domain-expertise *plan`
 **Epic**: Story 6.4.3
@@ -86,7 +65,6 @@
 Fully-featured Langflow Architect with:
 
 - Dynamic domain expertise (any industry)
-- Real-time compliance intelligence (5+ frameworks)
 - Adaptive user experience (progressive disclosure)
 - Production-ready deployment (zero warnings, optimal performance)
 
@@ -102,7 +80,6 @@ Fully-featured Langflow Architect with:
 
 - [ ] Zero ESLint warnings across entire codebase
 - [ ] Domain detection >90% accuracy in testing
-- [ ] Compliance validation for 5+ regulatory frameworks
 - [ ] Adaptive questioning satisfaction >85%
 - [ ] All Epic 6 Phase 4 acceptance criteria met
 - [ ] Production deployment ready with full documentation
