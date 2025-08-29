@@ -176,3 +176,7 @@ Instead of compliance features, prioritize:
 ---
 
 **Next Immediate Action**: Close PR #14 with the provided comment and begin Week 1 cleanup tasks.
+
+
+
+> Note: Any remaining mentions of compliance in UI copy are informational only. Full compliance features are deferred to a future plugin architecture and are not active in core.
