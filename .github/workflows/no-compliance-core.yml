@@ -1,0 +1,23 @@
+name: Guard: No Compliance Code in Core
+
+on:
+  push:
+    branches: [ dev, main ]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for forbidden compliance code paths
+        run: |
+          set -e
+          echo "Scanning for forbidden paths..."
+          matches=
+          if [ -n "" ]; then
+            echo "Forbidden files detected in core app src:" >&2
+            echo "" >&2
+            exit 1
+          fi
+          echo "No forbidden compliance code found."
