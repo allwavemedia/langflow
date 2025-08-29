@@ -98,9 +98,13 @@ Instead of compliance features, prioritize:
 
 ### **Week 1: Cleanup and Refocus**
 - [x] Close PR #14 with explanation (Updated PR description, needs manual closure)
-- [x] Archive compliance code (Created `archive/compliance-engine-pr14` branch)
+- [x] Archive compliance code (Created rchive/compliance-engine-pr14 branch)
 - [x] Update development roadmap (Plugin architecture removed from immediate scope)
 - [x] Document decision for team alignment (Complete decision documentation created)
+- [x] Remove compliance code from dev branch
+- [x] Neutralize UI copy to informational regulatory language
+- [x] Add CI guard to block compliance code in core app
+- [x] Rename complianceAlerts to egulatoryHints in UI
 
 ### **Week 2-3: Extract Valuable Patterns**
 - [x] Extract multi-source knowledge synthesis pattern (✅ COMPLETED)
@@ -121,10 +125,10 @@ Instead of compliance features, prioritize:
 ## 🎯 Success Metrics
 
 ### **Immediate (Week 1)**
-- [ ] PR #14 closed with clear communication
-- [ ] Team aligned on direction
-- [ ] Development priorities updated
-- [ ] Compliance code safely archived
+- [x] PR #14 closed with clear communication
+- [x] Team aligned on direction
+- [x] Development priorities updated
+- [x] Compliance code safely archived
 
 ### **Short-term (Weeks 2-4)**
 
@@ -164,7 +168,7 @@ Instead of compliance features, prioritize:
 ### **Immediate**
 - [x] Compliance engine evaluation task
 - [x] Removal decision documentation
-- [ ] Update development roadmap
+- [x] Update development roadmap
 - [ ] Team communication about direction change
 
 ### **Ongoing**
