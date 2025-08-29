@@ -1,7 +1,7 @@
 // LangflowSchemaRegistry - Phase 2: Extract JSON schema specs into a normalized model and persist a local cache
 // Add AJV-based JSON schema validation service used during JSON generation/export
 
-import Ajv, { type JSONSchemaType, type ValidateFunction } from 'ajv';
+import Ajv, { type ValidateFunction } from 'ajv';
 import type { DocumentationEntry } from './docsIngestionService';
 
 interface LangflowComponent {
@@ -11,7 +11,7 @@ interface LangflowComponent {
   description: string;
   inputs: ComponentInput[];
   outputs: ComponentOutput[];
-  template: Record<string, any>;
+  template: Record<string, unknown>;
   metadata: ComponentMetadata;
 }
 
@@ -47,13 +47,13 @@ interface LangflowWorkflowSchema {
     data: {
       type: string;
       properties: {
-        nodes: any;
-        edges: any;
+        nodes: unknown;
+        edges: unknown;
       };
       required: string[];
     };
-    description: any;
-    name: any;
+    description: unknown;
+    name: unknown;
   };
   required: string[];
 }
@@ -275,7 +275,7 @@ export class LangflowSchemaRegistry {
     return inputs;
   }
 
-  private extractOutputsFromMarkdown(content: string): ComponentOutput[] {
+  private extractOutputsFromMarkdown(_content: string): ComponentOutput[] {
     // Similar logic to inputs but for outputs
     return [
       {
@@ -287,7 +287,7 @@ export class LangflowSchemaRegistry {
     ];
   }
 
-  private extractTemplateFromMarkdown(content: string): Record<string, any> {
+  private extractTemplateFromMarkdown(content: string): Record<string, unknown> {
     // Extract JSON examples or code blocks
     const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/g;
     const matches = content.match(codeBlockRegex);
@@ -296,7 +296,7 @@ export class LangflowSchemaRegistry {
       try {
         const jsonMatch = matches[0].replace(/```json\s*|\s*```/g, '');
         return JSON.parse(jsonMatch);
-      } catch (error) {
+      } catch (_error) {
         // Ignore parsing errors
       }
     }

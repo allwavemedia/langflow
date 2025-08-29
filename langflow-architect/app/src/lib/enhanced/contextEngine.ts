@@ -65,7 +65,7 @@ export class ContextEngine {
       specializations,
       complexity: query.length > 100 ? 'advanced' : 'basic',
       requiresCompliance: technologyStack.compliance.length > 0,
-      suggestedIntegrations: this.getSuggestedIntegrations(domainAnalysis.domain)
+      suggestedIntegrations: this.getSuggestedIntegrations()
     };
 
     return analysis;
@@ -197,7 +197,7 @@ export class ContextEngine {
     return detected;
   }
   
-  private getSuggestedIntegrations(_domain: string): string[] {
+  private getSuggestedIntegrations(): string[] {
     // TODO: Replace with dynamic integration discovery using MCP and web search
     // Current implementation should query current best practices and available integrations
     
@@ -249,7 +249,7 @@ export class ContextEngine {
     return this.contexts.get(conversationId) || null;
   }
 
-  updateContext(conversationId: string, userInput: string, _type: string): ContextAnalysis {
+  updateContext(conversationId: string, userInput: string): ContextAnalysis {
     const existingContext = this.contexts.get(conversationId);
     const newAnalysisResult = this.analyzeDomain(userInput);
     

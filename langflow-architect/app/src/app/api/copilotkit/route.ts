@@ -223,8 +223,7 @@ async function handleContextUpdate(conversationId: string, contextData: string, 
       // Update existing context
       updatedContext = contextEngine.updateContext(
         conversationId,
-        typeof parsedData === 'string' ? parsedData : JSON.stringify(parsedData),
-        contextType as 'domain_refinement' | 'workflow_progress' | 'user_feedback'
+        typeof parsedData === 'string' ? parsedData : JSON.stringify(parsedData)
       );
     } else {
       // Create new context analysis
@@ -804,8 +803,7 @@ const runtime = new CopilotRuntime({
               if (userInput && contextAnalysis) {
                 contextAnalysis = contextEngine.updateContext(
                   conversationId,
-                  userInput,
-                  'domain_refinement'
+                  userInput
                 );
               }
             }

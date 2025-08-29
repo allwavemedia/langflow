@@ -109,7 +109,7 @@ export class DocsMcpServer {
           return await this.getComponents(request.params);
           
         case 'getSchemas':
-          return await this.getSchemas(request.params);
+          return await this.getSchemas();
           
         case 'searchDocumentation':
           return await this.searchDocumentation(request.params);
@@ -233,7 +233,7 @@ export class DocsMcpServer {
     }
   }
 
-  private async getSchemas(_params?: DocParams): Promise<McpDocResponse> {
+  private async getSchemas(): Promise<McpDocResponse> {
     try {
       const stats = langflowSchemaRegistry.getCacheStatistics();
       

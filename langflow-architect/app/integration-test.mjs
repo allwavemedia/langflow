@@ -5,9 +5,9 @@
  * Tests all features of Stories 5.3-5.5 with mock data
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync as _readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join as _join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -246,7 +246,7 @@ async function testErrorHandling() {
       maxResults: 0
     });
     assert(result.results.length === 0, 'Should handle empty queries gracefully');
-  } catch (error) {
+  } catch (_error) {
     // Expected for some edge cases
   }
 

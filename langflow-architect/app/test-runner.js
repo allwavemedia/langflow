@@ -197,7 +197,7 @@ class TestRunner {
           console.log('✅ Server is ready\n');
           return;
         }
-      } catch (error) {
+      } catch {
         // Server not ready yet
       }
       

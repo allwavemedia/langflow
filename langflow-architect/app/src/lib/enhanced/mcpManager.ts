@@ -119,7 +119,7 @@ class McpManager {
         healthy = true; // Simplified for now
       }
       server.healthStatus = healthy ? 'healthy' : 'unhealthy';
-    } catch (error) {
+    } catch {
       server.healthStatus = 'unhealthy';
     } finally {
       server.lastChecked = new Date();
@@ -169,6 +169,7 @@ class McpManager {
     );
   }
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   async queryServers(query: string, domain: string = 'general', options: McpQueryOptions = {}): Promise<McpQueryResponse<any>> {
     const { timeout = 5000, fallbackServers = [] } = options;
     
@@ -216,10 +217,10 @@ class McpManager {
           timestamp: new Date().toISOString(),
         }]
       };
-      await new Promise(resolve => setTimeout(resolve, 100)); // Simulate network latency
+      await new Promise(resolve => setTimeout(resolve, Math.min(timeout, 1000))); // Simulate network latency
       return mockResponse;
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch {
+      return { success: false, error: 'Unknown error' };
     }
   }
 
@@ -259,4 +260,3 @@ class McpManager {
 }
 
 export const mcpManager = new McpManager();
-

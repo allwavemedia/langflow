@@ -265,14 +265,14 @@ test.describe('Socratic Langflow Architect - Live CopilotKit Integration', () =>
     page.on('response', async (response) => {
       if (response.url().includes('/api/copilotkit') && response.status() === 200) {
         try {
-          const responseText = await response.text()
+          const _responseText = await response.text()
           workflowInteractions.push({
             action: 'api_success',
             timestamp: Date.now(),
             success: true
           })
           console.log('Successful CopilotKit response received')
-        } catch (e) {
+        } catch (_e) {
           // Response might not be readable, but that's ok
         }
       }
