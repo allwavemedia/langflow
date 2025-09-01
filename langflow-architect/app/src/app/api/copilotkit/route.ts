@@ -11,6 +11,12 @@ import { langflowSchemaRegistry } from "../../../lib/enhanced/langflowSchemaRegi
 import { searchManager } from "../../../lib/enhanced/searchManager";
 import { docsMcpServer } from "../../../lib/enhanced/docsMcpServer";
 import { githubDocsManager, DocumentationResult, DocumentationSearchOptions } from "../../../lib/enhanced/githubDocsManager";
+import { 
+  generateAdaptiveQuestion,
+  processQuestionResponse,
+  adjustQuestionSophistication,
+  getQuestioningProgress
+} from "../../../lib/enhanced/actions/questioningActions";
 
 // Additional type definitions for Phase 3 actions
 interface WorkflowNode {
@@ -2187,6 +2193,260 @@ const runtime = new CopilotRuntime({
           console.error('Compatibility validation error:', error);
           return {
             message: "Compatibility validation failed",
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "generate_adaptive_question",
+      description: "Generate contextually adaptive questions to gather specific information for workflow requirements",
+      parameters: [
+        {
+          name: "domain",
+          type: "string",
+          description: "The domain or industry context for the question",
+          required: true,
+        },
+        {
+          name: "context",
+          type: "string",
+          description: "Current conversation context or requirements gathered so far",
+          required: true,
+        },
+        {
+          name: "sophisticationLevel",
+          type: "string",
+          description: "Level of technical sophistication (simple, moderate, advanced, expert)",
+          required: false,
+        },
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Unique conversation identifier for context tracking",
+          required: false,
+        },
+      ],
+      handler: async ({ domain, context, sophisticationLevel, conversationId }: {
+        domain: string;
+        context: string;
+        sophisticationLevel?: string;
+        conversationId?: string;
+      }) => {
+        try {
+          // Convert simple parameters to complex types expected by questioningActions
+          const domainContext = {
+            domain,
+            confidence: 0.8,
+            technologies: context.includes('tech') ? [context] : [],
+            specializations: [],
+            constraints: [],
+            compliance: []
+          };
+
+          const expertiseLevel = {
+            current: 'intermediate' as const,
+            confidence: 0.7,
+            domainSpecific: false,
+            adaptationHistory: []
+          };
+
+          const sophisticationLevelObj = {
+            complexity: (sophisticationLevel || 'moderate') as 'simple' | 'moderate' | 'advanced' | 'expert',
+            depth: 3,
+            technicalDetail: sophisticationLevel === 'advanced' || sophisticationLevel === 'expert',
+            includeExamples: true,
+            requiresValidation: false
+          };
+
+          return await generateAdaptiveQuestion({
+            domainContext,
+            expertiseLevel,
+            sophisticationLevel: sophisticationLevelObj,
+            conversationContext: conversationId ? {
+              conversationId,
+              context: domainContext,
+              questionHistory: [],
+              expertiseEvolution: [expertiseLevel],
+              preferences: {
+                preferredComplexity: sophisticationLevel || 'moderate',
+                learningStyle: 'textual',
+                domainFocus: [domain],
+                skipBasicQuestions: false,
+                enableAdaptiveDifficulty: true
+              }
+            } : undefined
+          });
+        } catch (error) {
+          console.error('Generate adaptive question error:', error);
+          return {
+            message: "Question generation failed",
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "process_question_response",
+      description: "Process user responses to questions and extract relevant information for workflow development",
+      parameters: [
+        {
+          name: "questionId",
+          type: "string",
+          description: "The ID of the question that was asked",
+          required: true,
+        },
+        {
+          name: "response",
+          type: "string",
+          description: "User's response to the question",
+          required: true,
+        },
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Unique conversation identifier for context tracking",
+          required: false,
+        },
+      ],
+      handler: async ({ questionId, response, conversationId }: {
+        questionId: string;
+        response: string;
+        conversationId?: string;
+      }) => {
+        try {
+          const userResponse = {
+            text: response,
+            confidence: 0.8,
+            timestamp: new Date().toISOString(),
+            metadata: {
+              responseTime: 0,
+              clarificationRequests: 0,
+              technicalTermsUsed: []
+            }
+          };
+
+          return await processQuestionResponse({
+            questionId,
+            response: userResponse,
+            updateExpertise: true,
+            generateFollowUp: true,
+            conversationId
+          });
+        } catch (error) {
+          console.error('Process question response error:', error);
+          return {
+            message: "Response processing failed",
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "adjust_question_sophistication",
+      description: "Adjust the sophistication level of questioning based on user responses and expertise assessment",
+      parameters: [
+        {
+          name: "currentLevel",
+          type: "string",
+          description: "Current sophistication level (simple, moderate, advanced, expert)",
+          required: true,
+        },
+        {
+          name: "direction",
+          type: "string",
+          description: "Direction to adjust (increase or decrease)",
+          required: true,
+        },
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Unique conversation identifier for context tracking",
+          required: false,
+        },
+      ],
+      handler: async ({ currentLevel, direction, conversationId }: {
+        currentLevel: string;
+        direction: string;
+        conversationId?: string;
+      }) => {
+        try {
+          const sophisticationLevel = {
+            complexity: currentLevel as 'simple' | 'moderate' | 'advanced' | 'expert',
+            depth: currentLevel === 'simple' ? 1 : currentLevel === 'moderate' ? 2 : currentLevel === 'advanced' ? 4 : 5,
+            technicalDetail: currentLevel === 'advanced' || currentLevel === 'expert',
+            includeExamples: true,
+            requiresValidation: currentLevel === 'expert'
+          };
+
+          return await adjustQuestionSophistication({
+            currentLevel: sophisticationLevel,
+            direction: direction as 'increase' | 'decrease',
+            preserveContext: true,
+            conversationId,
+            reason: 'User interaction pattern analysis'
+          });
+        } catch (error) {
+          console.error('Adjust question sophistication error:', error);
+          return {
+            message: "Sophistication adjustment failed",
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+    },
+    {
+      name: "get_questioning_progress",
+      description: "Get comprehensive progress analysis of the questioning session including completeness and next steps",
+      parameters: [
+        {
+          name: "conversationId",
+          type: "string",
+          description: "Unique conversation identifier to analyze",
+          required: true,
+        },
+        {
+          name: "domain",
+          type: "string",
+          description: "The domain context for progress analysis",
+          required: true,
+        },
+        {
+          name: "includeRecommendations",
+          type: "boolean",
+          description: "Whether to include next step recommendations",
+          required: false,
+        },
+      ],
+      handler: async ({ conversationId, domain, includeRecommendations }: {
+        conversationId: string;
+        domain: string;
+        includeRecommendations?: boolean;
+      }) => {
+        try {
+          const domainContext = {
+            domain,
+            confidence: 0.8,
+            technologies: [],
+            specializations: [],
+            constraints: [],
+            compliance: []
+          };
+
+          return await getQuestioningProgress({
+            domainContext,
+            includeHistory: true,
+            conversationId,
+            includeRecommendations: includeRecommendations ?? true
+          });
+        } catch (error) {
+          console.error('Get questioning progress error:', error);
+          return {
+            message: "Progress analysis failed",
             error: error instanceof Error ? error.message : 'Unknown error',
             timestamp: new Date().toISOString()
           };

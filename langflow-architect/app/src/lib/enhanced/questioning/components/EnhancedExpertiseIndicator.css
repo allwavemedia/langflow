@@ -1,0 +1,149 @@
+/**
+ * Enhanced Expertise Indicator Component - CSS Styles
+ * Epic 6.4.3 Story 1.4 - Phase 1: Enhanced Component Library
+ */
+
+.expertiseIndicator {
+  transition: all 0.3s ease-out;
+}
+
+.expertiseIndicator.animated {
+  transform: scale(1);
+}
+
+.expertiseIndicator.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.expertiseIndicator.hidden {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.expertiseIndicator.interactive {
+  cursor: pointer;
+}
+
+.expertiseIndicator.interactive:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.expertiseIndicator.interactive:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+/* Expertise level colors */
+.expertiseColor.novice {
+  color: #059669;
+  border-color: #059669;
+  background-color: rgba(5, 150, 105, 0.1);
+}
+
+.expertiseColor.beginner {
+  color: #0891B2;
+  border-color: #0891B2;
+  background-color: rgba(8, 145, 178, 0.1);
+}
+
+.expertiseColor.intermediate {
+  color: #D97706;
+  border-color: #D97706;
+  background-color: rgba(217, 119, 6, 0.1);
+}
+
+.expertiseColor.advanced {
+  color: #7C3AED;
+  border-color: #7C3AED;
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.expertiseColor.expert {
+  color: #DC2626;
+  border-color: #DC2626;
+  background-color: rgba(220, 38, 38, 0.1);
+}
+
+/* Confidence bar colors */
+.confidenceBar.novice {
+  background-color: #059669;
+}
+
+.confidenceBar.beginner {
+  background-color: #0891B2;
+}
+
+.confidenceBar.intermediate {
+  background-color: #D97706;
+}
+
+.confidenceBar.advanced {
+  background-color: #7C3AED;
+}
+
+.confidenceBar.expert {
+  background-color: #DC2626;
+}
+
+/* Progression dots */
+.progressionDot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  transition: all 0.2s ease-out;
+}
+
+.progressionDot.novice {
+  background-color: rgba(5, 150, 105, 0.7);
+}
+
+.progressionDot.beginner {
+  background-color: rgba(8, 145, 178, 0.7);
+}
+
+.progressionDot.intermediate {
+  background-color: rgba(217, 119, 6, 0.7);
+}
+
+.progressionDot.advanced {
+  background-color: rgba(124, 58, 237, 0.7);
+}
+
+.progressionDot.expert {
+  background-color: rgba(220, 38, 38, 0.7);
+}
+
+.progressionDot.current {
+  transform: scale(1.25);
+}
+
+/* Animations */
+.fadeInScale {
+  animation: fadeInScale 0.3s ease-out forwards;
+}
+
+.confidenceAnimation {
+  animation: fillConfidence 0.7s ease-out forwards;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fillConfidence {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--confidence-width);
+  }
+}
