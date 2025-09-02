@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/app/api/copilotkit/route.ts",
+    "src/lib/enhanced/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "__tests__/**",
+    "src/lib/enhanced/questioning/**",
+    "src/lib/enhanced/questioning/**/*",
+    "src/lib/enhanced/**/demo/**",
+    "src/lib/enhanced/**/tests/**",
+    "src/lib/enhanced/**/test/**"
+  ]
+}
