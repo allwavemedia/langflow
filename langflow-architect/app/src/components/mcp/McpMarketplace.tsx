@@ -3,8 +3,10 @@
  * Story 6.1: Visual marketplace interface with server categories and discovery
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { McpMarketplaceEntry, McpCategory, MCP_CATEGORIES, McpTransport } from '../../types/mcp';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { McpMarketplaceEntry, McpCategory, MCP_CATEGORIES, McpTransport, McpConnectionTestResult } from '../../types/mcp';
+import McpConnectionTest from './McpConnectionTest';
+import { marketplaceService, MarketplaceResponse } from '../../services/mcpMarketplaceService';
 
 interface McpMarketplaceProps {
   readonly onServerSelect?: (server: McpMarketplaceEntry) => void;
@@ -27,79 +29,43 @@ export default function McpMarketplace({ onServerSelect, onPreviewServer }: McpM
     sortBy: 'popularity',
     showFeaturedOnly: false
   });
-  
-  // Mock marketplace data - will be replaced with API call in Task 5
-  const mockMarketplaceData: McpMarketplaceEntry[] = useMemo(() => [
-    {
-      id: 'web-search-tavily',
-      name: 'Tavily Web Search',
-      description: 'Professional web search API with domain-focused results and high-quality content extraction.',
-      category: 'Web Search',
-      author: 'Tavily AI',
-      version: '1.2.0',
-      rating: 4.8,
-      downloads: 15420,
-      transport: { type: 'sse', url: 'https://mcp.copilotkit.ai/sse/tavily' },
-      capabilities: ['search', 'extract', 'summarize'],
-      tags: ['search', 'web', 'research', 'ai'],
-      icon: '🔍',
-      documentation: 'https://docs.tavily.com/mcp',
-      repository: 'https://github.com/tavily/mcp-server',
-      featured: true
-    },
-    {
-      id: 'file-operations',
-      name: 'File Operations MCP',
-      description: 'Comprehensive file system operations including read, write, search, and directory management.',
-      category: 'File Operations',
-      author: 'CopilotKit Team',
-      version: '2.1.0',
-      rating: 4.6,
-      downloads: 12800,
-      transport: { type: 'stdio', command: 'file-mcp-server' },
-      capabilities: ['read', 'write', 'search', 'directory'],
-      tags: ['files', 'filesystem', 'operations'],
-      icon: '📁',
-      documentation: 'https://docs.copilotkit.ai/mcp/file-ops',
-      featured: true
-    },
-    {
-      id: 'github-integration',
-      name: 'GitHub API Integration',
-      description: 'Complete GitHub API integration for repository management, issues, PRs, and code analysis.',
-      category: 'API Integrations',
-      author: 'GitHub Inc.',
-      version: '1.5.2',
-      rating: 4.7,
-      downloads: 9650,
-      transport: { type: 'sse', url: 'https://mcp.copilotkit.ai/sse/github' },
-      capabilities: ['repositories', 'issues', 'pulls', 'code'],
-      tags: ['github', 'git', 'api', 'development'],
-      icon: '🐙',
-      documentation: 'https://docs.github.com/mcp',
-      featured: false
-    },
-    {
-      id: 'database-postgres',
-      name: 'PostgreSQL Database MCP',
-      description: 'Secure PostgreSQL database operations with query execution and schema management.',
-      category: 'Database',
-      author: 'PostgreSQL Community',
-      version: '1.0.5',
-      rating: 4.5,
-      downloads: 7200,
-      transport: { type: 'stdio', command: 'postgres-mcp', args: ['--secure'] },
-      capabilities: ['query', 'schema', 'admin'],
-      tags: ['database', 'sql', 'postgres'],
-      icon: '🗄️',
-      documentation: 'https://postgresql.org/mcp',
-      featured: false
-    }
-  ], []);
+
+  // Preview modal state
+  const [previewServer, setPreviewServer] = useState<McpMarketplaceEntry | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Marketplace data state
+  const [marketplaceData, setMarketplaceData] = useState<MarketplaceResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load marketplace data on component mount
+  useEffect(() => {
+    const loadMarketplaceData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await marketplaceService.fetchMarketplaceData();
+        setMarketplaceData(data);
+        if (data.error) {
+          setError(data.error);
+        }
+      } catch (err) {
+        setError('Failed to load marketplace data. Please try again later.');
+        console.error('Marketplace data loading error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMarketplaceData();
+  }, []);
 
   // Enhanced filter and sort marketplace entries
   const filteredAndSortedEntries = useMemo(() => {
-    let filtered = mockMarketplaceData;
+    if (!marketplaceData?.servers) return [];
+    
+    let filtered = marketplaceData.servers;
 
     // Filter by category
     if (filters.category !== 'All') {
@@ -145,7 +111,7 @@ export default function McpMarketplace({ onServerSelect, onPreviewServer }: McpM
     });
 
     return filtered;
-  }, [filters, mockMarketplaceData]);
+  }, [filters, marketplaceData?.servers]);
 
   // Filter update handlers
   const updateFilter = useCallback(<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
@@ -167,7 +133,19 @@ export default function McpMarketplace({ onServerSelect, onPreviewServer }: McpM
   };
 
   const handlePreviewServer = (server: McpMarketplaceEntry) => {
+    setPreviewServer(server);
+    setIsPreviewOpen(true);
     onPreviewServer?.(server);
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewServer(null);
+  };
+
+  const handleTestComplete = (result: McpConnectionTestResult) => {
+    // Log test result for debugging/analytics
+    console.log('MCP Connection Test Result:', result);
   };
 
   return (
@@ -180,6 +158,37 @@ export default function McpMarketplace({ onServerSelect, onPreviewServer }: McpM
         </p>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <h3 className="text-xl font-semibold text-white mb-2">Loading Marketplace</h3>
+          <p className="text-slate-400">Fetching the latest MCP servers from CopilotKit...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="bg-red-900/20 border border-red-800 rounded-lg p-6 mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <div className="font-semibold text-red-400">Failed to Load Marketplace</div>
+              <div className="text-slate-400 text-sm">{error}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Main Content - only show when loaded */}
+      {!isLoading && !error && marketplaceData && (
+        <>
       {/* Enhanced Search and Filters */}
       <div className="mb-8 bg-slate-800 rounded-lg p-6 border border-slate-700">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -326,6 +335,18 @@ export default function McpMarketplace({ onServerSelect, onPreviewServer }: McpM
             Clear All Filters
           </button>
         </div>
+      )}
+        </>
+      )}
+      
+      {/* MCP Connection Test Modal */}
+      {previewServer && (
+        <McpConnectionTest
+          server={previewServer}
+          isOpen={isPreviewOpen}
+          onClose={handleClosePreview}
+          onTestComplete={handleTestComplete}
+        />
       )}
     </div>
   );

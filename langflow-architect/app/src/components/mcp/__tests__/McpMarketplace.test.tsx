@@ -14,6 +14,84 @@ import '@testing-library/jest-dom';
 import McpMarketplace from '../McpMarketplace';
 import { McpMarketplaceEntry } from '../../../types/mcp';
 
+// Mock the marketplace service
+jest.mock('../../../services/mcpMarketplaceService', () => ({
+  marketplaceService: {
+    fetchMarketplaceData: jest.fn().mockResolvedValue({
+      servers: [
+        {
+          id: 'web-search-tavily',
+          name: 'Tavily Web Search',
+          description: 'Professional web search API with domain-focused results and high-quality content extraction.',
+          category: 'Web Search',
+          author: 'Tavily AI',
+          version: '1.2.0',
+          rating: 4.8,
+          downloads: 15420,
+          transport: { type: 'sse', url: 'https://mcp.copilotkit.ai/sse/tavily' },
+          capabilities: ['search', 'extract', 'summarize'],
+          tags: ['search', 'web', 'research', 'ai'],
+          icon: '🔍',
+          documentation: 'https://docs.tavily.com/mcp',
+          repository: 'https://github.com/tavily/mcp-server',
+          featured: true
+        },
+        {
+          id: 'file-operations',
+          name: 'File Operations MCP',
+          description: 'Comprehensive file system operations including read, write, search, and directory management.',
+          category: 'File Operations',
+          author: 'CopilotKit Team',
+          version: '2.1.0',
+          rating: 4.6,
+          downloads: 12800,
+          transport: { type: 'stdio', command: 'file-mcp-server' },
+          capabilities: ['read', 'write', 'search', 'directory'],
+          tags: ['files', 'filesystem', 'operations'],
+          icon: '📁',
+          documentation: 'https://docs.copilotkit.ai/mcp/file-ops',
+          featured: true
+        },
+        {
+          id: 'github-integration',
+          name: 'GitHub API Integration',
+          description: 'Complete GitHub API integration for repository management, issues, PRs, and code analysis.',
+          category: 'API Integrations',
+          author: 'GitHub Inc.',
+          version: '1.5.2',
+          rating: 4.7,
+          downloads: 9650,
+          transport: { type: 'sse', url: 'https://mcp.copilotkit.ai/sse/github' },
+          capabilities: ['repositories', 'issues', 'pulls', 'code'],
+          tags: ['github', 'git', 'api', 'development'],
+          icon: '🐙',
+          documentation: 'https://docs.github.com/mcp',
+          featured: false
+        },
+        {
+          id: 'database-postgres',
+          name: 'PostgreSQL Database MCP',
+          description: 'Secure PostgreSQL database operations with query execution and schema management.',
+          category: 'Database',
+          author: 'PostgreSQL Community',
+          version: '1.0.5',
+          rating: 4.5,
+          downloads: 7200,
+          transport: { type: 'stdio', command: 'postgres-mcp', args: ['--secure'] },
+          capabilities: ['query', 'schema', 'admin'],
+          tags: ['database', 'sql', 'postgres'],
+          icon: '🗄️',
+          documentation: 'https://postgresql.org/mcp',
+          featured: false
+        }
+      ],
+      featured: [],
+      categories: ['Web Search', 'File Operations', 'API Integrations', 'Database'],
+      totalCount: 4
+    })
+  }
+}));
+
 // Mock marketplace entry for testing (unused but needed for type validation)
 const _mockServer: McpMarketplaceEntry = {
   id: 'test-server',
@@ -41,12 +119,16 @@ describe('McpMarketplace Component', () => {
   });
 
   describe('Task 1: Basic Marketplace Foundation', () => {
-    it('renders marketplace header and search interface', () => {
+    it('renders marketplace header and search interface', async () => {
       render(<McpMarketplace {...defaultProps} />);
       
       expect(screen.getByText('MCP Server Marketplace')).toBeInTheDocument();
       expect(screen.getByText('Discover and integrate Model Context Protocol servers to enhance your AI capabilities')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Search by name, description, capabilities, tags, or author...')).toBeInTheDocument();
+      
+      // Wait for data to load
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search by name, description, capabilities, tags, or author...')).toBeInTheDocument();
+      });
     });
 
     it('renders category filter buttons', () => {
