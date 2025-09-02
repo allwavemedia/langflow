@@ -20,19 +20,16 @@
       "priority": 1
     },
     "microsoft-docs": {
-      "name": "Microsoft Documentation MCP Server",
+      "name": "Microsoft Learn MCP Server",
       "description": "Access to official Microsoft documentation including Azure, .NET, Microsoft 365, and other Microsoft technologies",
       "transport": {
-        "type": "sse",
-        "url": "https://mcp.microsoft.com/sse"
+        "type": "http",
+        "url": "https://learn.microsoft.com/api/mcp"
       },
       "domain": "microsoft",
       "tags": ["microsoft", "azure", "documentation", "dotnet", "m365"],
       "capabilities": [
-        "Azure documentation",
-        "Microsoft 365 guidance",
-        ".NET framework docs",
-        "Microsoft technology best practices"
+        "microsoft_docs_search - Semantic search across Microsoft documentation"
       ],
       "enabled": true,
       "priority": 2
