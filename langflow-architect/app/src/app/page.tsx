@@ -180,7 +180,7 @@ export default function Home() {
           </div>
 
           {/* Modern Chat Interface */}
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-white rounded-lg shadow-lg h-full">
             <ModernChatInterface 
               isClient={isClient} 
               className="h-full"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CopilotChat } from "@copilotkit/react-ui";
+import "./ModernChatInterface.css";
 
 interface Message {
   id: string;
@@ -45,7 +46,7 @@ export function ModernChatInterface({ isClient, className = "" }: ModernChatInte
   }
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-full ${className}`}>
+    <div className={`bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-full max-h-full modern-chat-container ${className}`}>
       {/* Chat Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
@@ -69,10 +70,10 @@ export function ModernChatInterface({ isClient, className = "" }: ModernChatInte
             className="p-1 hover:bg-gray-100 rounded transition-colors"
             aria-label={isExpanded ? "Minimize chat" : "Expand chat"}
           >
-            <svg 
-              className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? '' : 'rotate-180'}`} 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? '' : 'rotate-180'}`}
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -83,9 +84,9 @@ export function ModernChatInterface({ isClient, className = "" }: ModernChatInte
 
       {/* Chat Content */}
       {isExpanded && (
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* CopilotKit Chat Integration */}
-          <div className="flex-1 relative">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* CopilotKit Chat Integration with Isolation */}
+          <div className="flex-1 flex flex-col h-full copilot-chat-isolation">
             <CopilotChat
               instructions="You are a Socratic Langflow Architect. Use thoughtful questions to guide users through workflow design. Focus on understanding their needs deeply before proposing solutions."
               labels={{
@@ -95,7 +96,7 @@ export function ModernChatInterface({ isClient, className = "" }: ModernChatInte
               }}
               makeSystemMessage={(instructions) => `${instructions}\n\nRemember to:\n1. Ask clarifying questions before jumping to solutions\n2. Help users think through their requirements systematically\n3. Guide them to discover optimal workflow patterns\n4. Provide expert advice while encouraging user discovery`}
               onInProgress={(inProgress) => console.log("Chat processing:", inProgress)}
-              className="h-full"
+              className="h-full w-full"
             />
           </div>
         </div>
