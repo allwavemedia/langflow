@@ -1,9 +1,10 @@
 "use client";
 
-import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
-import { useState } from "react";
-import KnowledgeAttribution from "../components/KnowledgeAttribution";
+import { useEffect, useState } from "react";
+import { ModernChatInterface } from "@/components/ModernChatInterface";
+import { CopilotIntegration } from "@/components/CopilotIntegration";
 
+// Core types for workflow data and statistics
 interface WorkflowData {
   description: string;
   category: string;
@@ -47,341 +48,146 @@ type EnhancementStats = {
 };
 
 export default function Home() {
+  const [isClient, setIsClient] = useState(false);
   const [workflowData, setWorkflowData] = useState<WorkflowData | null>(null);
   const [currentQuestions, setCurrentQuestions] = useState<string[]>([]);
   const [enhancementStats, setEnhancementStats] = useState<EnhancementStats | null>(null);
 
-  // Make the current workflow data readable by the AI
-  useCopilotReadable({
-    description: "Current workflow analysis, questions, and enhancement statistics",
-    value: {
-      workflowData,
-      currentQuestions,
-      enhancementStats,
-    },
-  });
-
-  // Action to trigger workflow analysis
-  useCopilotAction({
-    name: "start_workflow_analysis",
-    description: "Start analyzing a new workflow with user input",
-    parameters: [
-      {
-        name: "description",
-        type: "string",
-        description: "User's description of what they want to build",
-        required: true,
-      },
-    ],
-    handler: async ({ description }) => {
-      // Enhanced workflow analysis will be handled by the API
-      const mockAnalysis = {
-        description,
-        category: "automation",
-        complexity: "moderate",
-        timestamp: new Date().toISOString(),
-        attribution: "Enhanced analysis with web search integration",
-        knowledgeSources: [],
-        regulatoryHints: [],
-        confidenceScore: 0.85,
-      };
-      
-      setWorkflowData(mockAnalysis);
-      
-      // Generate some initial questions
-      const questions = [
-        "What specific triggers should start this workflow?",
-        "What data sources will you be working with?",
-        "How should the workflow handle errors or exceptions?",
-      ];
-      
-      setCurrentQuestions(questions);
-      
-      return "Enhanced workflow analysis started! I've generated initial questions and will search for current best practices to help design your workflow.";
-    },
-  });
-
-  // Action to download generated Langflow JSON
-  useCopilotAction({
-    name: "download_langflow_json",
-    description: "Download the generated Langflow workflow as a JSON file",
-    parameters: [
-      {
-        name: "workflow_json",
-        type: "string",
-        description: "The Langflow JSON workflow to download",
-        required: true,
-      },
-      {
-        name: "filename",
-        type: "string", 
-        description: "Name for the downloaded file",
-        required: false,
-      },
-    ],
-    handler: async ({ workflow_json, filename }) => {
-      try {
-        const parsedJson = JSON.parse(workflow_json);
-        const blob = new Blob([JSON.stringify(parsedJson, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename || "langflow-workflow.json";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        return "Langflow workflow JSON has been downloaded successfully!";
-      } catch (err) {
-        console.error("Error downloading workflow:", err);
-        return "Error downloading the workflow file. Please try again.";
-      }
-    },
-  });
-
-  // Action to update workflow questions
-  useCopilotAction({
-    name: "update_workflow_questions",
-    description: "Update the current questions based on user responses",
-    parameters: [
-      {
-        name: "new_questions",
-        type: "string",
-        description: "JSON array of new questions to display",
-        required: true,
-      },
-    ],
-    handler: async ({ new_questions }) => {
-      try {
-        const questions = JSON.parse(new_questions);
-        if (Array.isArray(questions)) {
-          setCurrentQuestions(questions);
-          return "Questions updated successfully!";
-        }
-        return "Invalid questions format provided.";
-      } catch (err) {
-        console.error("Error parsing questions:", err);
-        return "Error parsing questions. Please provide a valid JSON array.";
-      }
-    },
-  });
-
-  // Action to get enhancement statistics
-  useCopilotAction({
-    name: "show_enhancement_statistics",
-    description: "Display web search and caching statistics",
-    parameters: [],
-    handler: async () => {
-      try {
-        // This would be called by the enhanced API action
-        const mockStats = {
-          cache: {
-            cacheSize: 45,
-            maxSize: 500,
-            hitRate: 0.73,
-            missRate: 0.27,
-            totalQueries: 156,
-            utilizationRate: 0.09
-          },
-          topPerformingSources: [
-            { provider: 'tavily', type: 'web-search', totalUses: 34, averageConfidence: 0.82 },
-            { provider: 'duckduckgo', type: 'web-search', totalUses: 28, averageConfidence: 0.65 }
-          ],
-          searchManagerStatus: {
-            tavilyEnabled: true,
-            duckduckgoEnabled: true
-          }
-        };
-        
-        setEnhancementStats(mockStats);
-        return "Enhancement statistics retrieved! Check the Statistics panel for cache performance and search provider information.";
-  } catch {
-        return "Unable to retrieve enhancement statistics at this time.";
-      }
-    },
-  });
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Socratic Langflow Architect
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Use AI-powered Socratic questioning to design and build sophisticated Langflow workflows.
-            Just describe what you want to build, and I&apos;ll guide you through the process.
-          </p>
-        </header>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Current Analysis */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Current Analysis
-            </h2>
-            {workflowData ? (
-              <div className="space-y-3">
-                <div>
-                  <span className="font-medium text-gray-600">Description:</span>
-                  <p className="text-gray-800">{workflowData.description}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Category:</span>
-                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                    {workflowData.category}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Complexity:</span>
-                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded">
-                    {workflowData.complexity}
-                  </span>
-                </div>
-                {workflowData.confidenceScore && (
-                  <div>
-                    <span className="font-medium text-gray-600">Confidence:</span>
-                    <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                      {Math.round(workflowData.confidenceScore * 100)}%
-                    </span>
-                  </div>
-                )}
-                {workflowData.regulatoryHints && workflowData.regulatoryHints.length > 0 && (
-                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                    <span className="font-medium text-yellow-800">⚠️ Regulatory/Standards Hints:</span>
-                    <ul className="mt-1 text-sm text-yellow-700">
-                      {workflowData.regulatoryHints.map((alert, index) => (
-                        <li key={`alert-${index}-${alert.slice(0,20)}`}>• {alert}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {workflowData.knowledgeSources && workflowData.knowledgeSources.length > 0 && (
-                  <KnowledgeAttribution
-                    sources={workflowData.knowledgeSources}
-                    summary={workflowData.attribution}
-                  />
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic">
-                No workflow analysis yet. Start a conversation with the AI to begin!
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* CopilotKit Actions Integration */}
+      {isClient && (
+        <CopilotIntegration 
+          workflowData={workflowData}
+          currentQuestions={currentQuestions}
+          enhancementStats={enhancementStats}
+          setWorkflowData={setWorkflowData}
+          setCurrentQuestions={setCurrentQuestions}
+          setEnhancementStats={setEnhancementStats}
+          isClient={isClient}
+        />
+      )}
+      
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Socratic Langflow Architect
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                AI-Powered Socratic Workflow Design Assistant - Epic 6.4.3
               </p>
-            )}
-          </div>
-
-          {/* Enhancement Statistics */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Enhancement Statistics
-            </h2>
-            {enhancementStats ? (
-              <div className="space-y-4">
-                {/* Cache Statistics */}
-                <div className="border-l-4 border-blue-500 pl-3">
-                  <h3 className="font-medium text-gray-700 mb-2">Knowledge Cache</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Hit Rate:</span>
-                      <span className="ml-1 font-medium text-green-600">
-                        {Math.round(enhancementStats.cache.hitRate * 100)}%
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Cache Size:</span>
-                      <span className="ml-1 font-medium">
-                        {enhancementStats.cache.cacheSize}/{enhancementStats.cache.maxSize}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Search Providers */}
-                <div className="border-l-4 border-green-500 pl-3">
-                  <h3 className="font-medium text-gray-700 mb-2">Search Providers</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Tavily:</span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        enhancementStats.searchManagerStatus.tavilyEnabled 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {enhancementStats.searchManagerStatus.tavilyEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">DuckDuckGo:</span>
-                      <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                        Enabled
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-gray-500 italic">
-                  No statistics available yet.
-                </p>
-                <p className="text-sm text-blue-600">
-                  Ask the AI to &quot;show enhancement statistics&quot;
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Current Questions */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Guiding Questions
-            </h2>
-            {currentQuestions.length > 0 ? (
-              <ul className="space-y-3">
-                {currentQuestions.map((question, index) => (
-                  <li key={`question-${index}-${question.slice(0, 10)}`} className="flex items-start">
-                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 mt-0.5">
-                      {index + 1}
-                    </span>
-                    <span className="text-gray-800">{question}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500 italic">
-                Questions will appear here as we analyze your workflow.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Getting Started Card */}
-        <div className="mt-12 bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            Getting Started
-          </h2>
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Ready to build your Langflow workflow? Here&apos;s how to get started:
-            </p>
-            <ol className="list-decimal list-inside space-y-2 text-gray-700">
-              <li>Click the chat icon in the sidebar to open the AI assistant</li>
-              <li>Describe what you want to build (e.g., &quot;I want to create a chatbot that answers questions about my product documentation&quot;)</li>
-              <li>Answer the AI&apos;s questions to refine your workflow design</li>
-              <li>Export your completed workflow as a Langflow JSON file</li>
-            </ol>
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-blue-800 font-medium">💡 Tip:</p>
-              <p className="text-blue-700 mt-1">
-                The more specific you are about your requirements, the better I can help you design an optimal workflow!
-              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                CopilotKit Active
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Main Content Area with Integrated Chat */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-200px)]">
+          
+          {/* Welcome/Instructions Panel */}
+          <div className="bg-white rounded-lg shadow-lg p-6 overflow-y-auto">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Welcome to Socratic Workflow Design
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  I&apos;m your AI assistant that uses Socratic questioning to help you design better workflows. 
+                  Instead of jumping straight to solutions, I&apos;ll guide you through thoughtful questions 
+                  to understand your needs deeply.
+                </p>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h3 className="font-medium text-blue-900 mb-2">How it works:</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Share your workflow idea or challenge</li>
+                  <li>• I&apos;ll ask clarifying questions to understand your needs</li>
+                  <li>• Together we&apos;ll explore requirements and constraints</li>
+                  <li>• Discover optimal patterns and solutions through guided discovery</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-4">
+                <h3 className="font-medium text-green-900 mb-2">Available Capabilities:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-green-800">
+                  <div>✓ Clarification Questions</div>
+                  <div>✓ Root Cause Analysis</div>
+                  <div>✓ Alternative Exploration</div>
+                  <div>✓ Assumption Challenges</div>
+                </div>
+              </div>
+
+              {/* Current Analysis Display */}
+              {workflowData && (
+                <div className="border-t pt-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Current Analysis:</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-600">Description:</span>
+                      <p className="text-gray-800 mt-1">{workflowData.description}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                        {workflowData.category}
+                      </span>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                        {workflowData.complexity}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Questions Display */}
+              {currentQuestions.length > 0 && (
+                <div className="border-t pt-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Guiding Questions:</h3>
+                  <ul className="space-y-2">
+                    {currentQuestions.slice(-3).map((question, index) => (
+                      <li key={index} className="text-sm text-gray-700 flex items-start">
+                        <span className="flex-shrink-0 w-4 h-4 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-medium mr-2 mt-0.5">
+                          {currentQuestions.length - 2 + index}
+                        </span>
+                        <span>{question}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <h3 className="font-medium text-gray-900 mb-2">Ready to start?</h3>
+                <p className="text-sm text-gray-600">
+                  Use the chat interface on the right to begin describing your workflow needs. 
+                  I&apos;ll guide you through the discovery process with thoughtful questions.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Modern Chat Interface */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <ModernChatInterface 
+              isClient={isClient} 
+              className="h-full"
+            />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

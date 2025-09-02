@@ -1,0 +1,354 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import KnowledgeAttribution from "../components/KnowledgeAttribution";
+import { CopilotIntegration } from "../components/CopilotIntegration";
+import QuestioningDashboard, { 
+  QuestioningSession
+} from "../lib/enhanced/questioning/components/QuestioningDashboard";
+import { ExpertiseLevel } from "../lib/enhanced/questioning/expertiseTracker";
+import { ProgressStep } from "../lib/enhanced/questioning/components/EnhancedProgressionTracker";
+
+interface WorkflowData {
+  description: string;
+  category: string;
+  complexity: string;
+  timestamp: string;
+  attribution?: string;
+  knowledgeSources?: AttributionSource[];
+  regulatoryHints?: string[];
+  confidenceScore?: number;
+}
+
+type AttributionSource = {
+  id: string;
+  type: "web-search" | "mcp" | "static-knowledge";
+  provider: string;
+  url?: string;
+  title: string;
+  confidence: number;
+  timestamp: string;
+};
+
+type EnhancementStats = {
+  cache: {
+    cacheSize: number;
+    maxSize: number;
+    hitRate: number;
+    missRate: number;
+    totalQueries: number;
+    utilizationRate: number;
+  };
+  topPerformingSources: Array<{
+    provider: string;
+    type: string;
+    totalUses: number;
+    averageConfidence: number;
+  }>;
+  searchManagerStatus: {
+    tavilyEnabled: boolean;
+    duckduckgoEnabled: boolean;
+  };
+};
+
+export default function Home() {
+  const [workflowData, setWorkflowData] = useState<WorkflowData | null>(null);
+  const [currentQuestions, setCurrentQuestions] = useState<string[]>([]);
+  const [enhancementStats, setEnhancementStats] = useState<EnhancementStats | null>(null);
+  
+  // Questioning session state
+  const [questioningSession, setQuestioningSession] = useState<QuestioningSession | null>(null);
+  const [showQuestioningDashboard, setShowQuestioningDashboard] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure hydration consistency
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Initialize questioning session when workflow analysis starts (client-side only)
+  useEffect(() => {
+    if (isClient && workflowData && !questioningSession) {
+      // Use a more deterministic approach to avoid hydration mismatches
+      const sessionId = `session-${workflowData.timestamp.replace(/[^0-9]/g, '')}`;
+      const sessionTime = new Date(workflowData.timestamp);
+      
+      const newSession: QuestioningSession = {
+        id: sessionId,
+        startTime: sessionTime,
+        currentStep: 'analysis',
+        expertise: {
+          level: 'intermediate' as ExpertiseLevel,
+          confidence: 0.7,
+          domain: workflowData.category || 'general',
+        },
+        sophistication: 3,
+        progress: [
+          { 
+            id: 'step-1', 
+            title: 'Domain Analysis', 
+            status: 'completed', 
+            description: 'Analyzed workflow domain and category',
+            timestamp: sessionTime,
+          },
+          { 
+            id: 'step-2', 
+            title: 'Question Generation', 
+            status: 'current', 
+            description: 'Generating contextual questions',
+          },
+          { 
+            id: 'step-3', 
+            title: 'Expertise Assessment', 
+            status: 'pending', 
+            description: 'Assessing user expertise level',
+          },
+          { 
+            id: 'step-4', 
+            title: 'Workflow Design', 
+            status: 'pending', 
+            description: 'Designing optimal workflow structure',
+          },
+        ],
+        metadata: {
+          questionsAsked: currentQuestions.length,
+          responseQuality: workflowData.confidenceScore || 0.8,
+          topicsExplored: [workflowData.category],
+          adaptations: 0,
+        },
+      };
+      setQuestioningSession(newSession);
+      setShowQuestioningDashboard(true);
+    }
+  }, [isClient, workflowData, questioningSession, currentQuestions.length]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      {/* CopilotKit Integration - Client-side only */}
+      {isClient && (
+        <CopilotIntegration
+          workflowData={workflowData}
+          currentQuestions={currentQuestions}
+          enhancementStats={enhancementStats}
+          setWorkflowData={setWorkflowData}
+          setCurrentQuestions={setCurrentQuestions}
+          setEnhancementStats={setEnhancementStats}
+          isClient={isClient}
+        />
+      )}
+
+      <div className="max-w-4xl mx-auto">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Socratic Langflow Architect
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Use AI-powered Socratic questioning to design and build sophisticated Langflow workflows.
+            Just describe what you want to build, and I&apos;ll guide you through the process.
+          </p>
+        </header>
+
+        {/* Questioning Dashboard Integration - Story 1.5 */}
+        {isClient && showQuestioningDashboard && questioningSession && (
+          <div className="mb-8">
+            <QuestioningDashboard
+              session={questioningSession}
+              variant="full"
+              showControls={true}
+              showMetadata={true}
+              interactive={true}
+              onExpertiseChange={(level: ExpertiseLevel) => {
+                setQuestioningSession(prev => prev ? {
+                  ...prev,
+                  expertise: { ...prev.expertise, level }
+                } : null);
+              }}
+              onSophisticationChange={(level: number) => {
+                setQuestioningSession(prev => prev ? {
+                  ...prev,
+                  sophistication: level
+                } : null);
+              }}
+              onStepClick={(step: ProgressStep) => {
+                console.log('Progress step clicked:', step);
+              }}
+              onSessionAction={(action: string, data?: unknown) => {
+                console.log('Session action:', action, data);
+                if (action === 'generate_question') {
+                  // Trigger question generation
+                  const question = `Generated question for ${questioningSession.expertise.domain}`;
+                  setCurrentQuestions(prev => [...prev, question]);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Current Analysis */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Current Analysis
+            </h2>
+            {workflowData ? (
+              <div className="space-y-3">
+                <div>
+                  <span className="font-medium text-gray-600">Description:</span>
+                  <p className="text-gray-800">{workflowData.description}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Category:</span>
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                    {workflowData.category}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Complexity:</span>
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded">
+                    {workflowData.complexity}
+                  </span>
+                </div>
+                {workflowData.confidenceScore && (
+                  <div>
+                    <span className="font-medium text-gray-600">Confidence:</span>
+                    <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                      {Math.round(workflowData.confidenceScore * 100)}%
+                    </span>
+                  </div>
+                )}
+                {workflowData.regulatoryHints && workflowData.regulatoryHints.length > 0 && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <span className="font-medium text-yellow-800">⚠️ Regulatory/Standards Hints:</span>
+                    <ul className="mt-1 text-sm text-yellow-700">
+                      {workflowData.regulatoryHints.map((alert, index) => (
+                        <li key={`alert-${index}-${alert.slice(0,20)}`}>• {alert}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {workflowData.knowledgeSources && workflowData.knowledgeSources.length > 0 && (
+                  <KnowledgeAttribution
+                    sources={workflowData.knowledgeSources}
+                    summary={workflowData.attribution}
+                  />
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">
+                No workflow analysis yet. Start a conversation with the AI to begin!
+              </p>
+            )}
+          </div>
+
+          {/* Enhancement Statistics */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Enhancement Statistics
+            </h2>
+            {enhancementStats ? (
+              <div className="space-y-4">
+                {/* Cache Statistics */}
+                <div className="border-l-4 border-blue-500 pl-3">
+                  <h3 className="font-medium text-gray-700 mb-2">Knowledge Cache</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600">Hit Rate:</span>
+                      <span className="ml-1 font-medium text-green-600">
+                        {Math.round(enhancementStats.cache.hitRate * 100)}%
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Cache Size:</span>
+                      <span className="ml-1 font-medium">
+                        {enhancementStats.cache.cacheSize}/{enhancementStats.cache.maxSize}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search Providers */}
+                <div className="border-l-4 border-green-500 pl-3">
+                  <h3 className="font-medium text-gray-700 mb-2">Search Providers</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tavily:</span>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        enhancementStats.searchManagerStatus.tavilyEnabled 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {enhancementStats.searchManagerStatus.tavilyEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">DuckDuckGo:</span>
+                      <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                        Enabled
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-gray-500 italic">
+                  No statistics available yet.
+                </p>
+                <p className="text-sm text-blue-600">
+                  Ask the AI to &quot;show enhancement statistics&quot;
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Current Questions */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Guiding Questions
+            </h2>
+            {currentQuestions.length > 0 ? (
+              <ul className="space-y-3">
+                {currentQuestions.map((question, index) => (
+                  <li key={`question-${index}-${question.slice(0, 10)}`} className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-medium mr-3 mt-0.5">
+                      {index + 1}
+                    </span>
+                    <span className="text-gray-800">{question}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 italic">
+                Questions will appear here as we analyze your workflow.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Getting Started Card */}
+        <div className="mt-12 bg-white rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-semibent text-gray-800 mb-4">
+            Getting Started
+          </h2>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Ready to build your Langflow workflow? Here&apos;s how to get started:
+            </p>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700">
+              <li>Click the chat icon in the sidebar to open the AI assistant</li>
+              <li>Describe what you want to build (e.g., &quot;I want to create a chatbot that answers questions about my product documentation&quot;)</li>
+              <li>Answer the AI&apos;s questions to refine your workflow design</li>
+              <li>Export your completed workflow as a Langflow JSON file</li>
+            </ol>
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-blue-800 font-medium">💡 Tip:</p>
+              <p className="text-blue-700 mt-1">
+                The more specific you are about your requirements, the better I can help you design an optimal workflow!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
