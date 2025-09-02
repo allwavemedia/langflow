@@ -375,13 +375,13 @@ describe('DynamicExpertiseTracker', () => {
       }).not.toThrow();
     });
 
-    test('should provide default quality metrics on error', () => {
+    test('should handle empty responses gracefully with low scores', () => {
       const errorTracker = new DynamicExpertiseTracker();
       
-      // Mock a scenario that might cause analysis to fail
-      const problemResponse: UserResponse = {
-        id: 'problem',
-        text: '', // Empty string that might cause issues
+      // Test empty response handling (no longer throws error)
+      const emptyResponse: UserResponse = {
+        id: 'empty',
+        text: '', // Empty string now handled gracefully
         questionId: 'q1',
         timestamp: new Date(),
         responseTime: 10000,
@@ -395,10 +395,10 @@ describe('DynamicExpertiseTracker', () => {
         }
       };
 
-      const quality = errorTracker.analyzeUserResponse(problemResponse, mockQuestion, mockDomainContext);
+      const quality = errorTracker.analyzeUserResponse(emptyResponse, mockQuestion, mockDomainContext);
       
-      expect(quality.score).toBe(0.5); // Default fallback score
-      expect(quality.recommendedAction).toBe('maintain');
+      expect(quality.score).toBe(0.1); // Low score for empty response
+      expect(quality.recommendedAction).toBe('decrease'); // Score < 0.4 triggers decrease
     });
   });
 });
