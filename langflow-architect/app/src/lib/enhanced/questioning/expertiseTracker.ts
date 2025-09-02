@@ -292,9 +292,16 @@ export class DynamicExpertiseTracker {
   private analyzeResponseIndicators(response: UserResponse, domain: string): ExpertiseIndicators {
     const text = response.text.toLowerCase().trim();
     
-    // Handle empty or very short responses as an error condition (for testing error handling)
+    // Handle empty or very short responses gracefully
     if (text.length === 0) {
-      throw new Error('Cannot analyze empty response');
+      return {
+        vocabularyComplexity: 0.1,
+        conceptualDepth: 0.1,
+        technicalAccuracy: 0.1,
+        problemSolvingApproach: 0.1,
+        domainSpecificKnowledge: 0.1,
+        responseConfidence: 0.1
+      };
     }
     
     // Handle very short responses

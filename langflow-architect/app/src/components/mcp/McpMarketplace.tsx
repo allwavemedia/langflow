@@ -354,14 +354,14 @@ const getInstallationContent = (transport: McpTransport) => {
   if (transport.type === 'sse') {
     return (
       <div className="space-y-2">
-        <div className="text-slate-300">This server uses Server-Sent Events (SSE) connection:</div>
+        <div className="text-slate-300">Server-Sent Events (SSE) connection</div>
         <div className="bg-slate-800 rounded p-2 font-mono text-xs text-slate-400">
           Endpoint: {transport.url}
         </div>
-        <div className="text-slate-400 text-xs">
-          ✓ No local installation required<br/>
-          ✓ Automatic reconnection handling<br/>
-          ✓ Real-time event streaming
+        <div className="text-slate-400 text-xs space-y-1">
+          <div>✓ No local installation required</div>
+          <div>✓ Automatic reconnection handling</div>
+          <div>✓ Real-time event streaming</div>
         </div>
       </div>
     );
@@ -370,14 +370,14 @@ const getInstallationContent = (transport: McpTransport) => {
   if (transport.type === 'stdio') {
     return (
       <div className="space-y-2">
-        <div className="text-slate-300">This server requires local installation:</div>
+        <div className="text-slate-300">Local STDIO server installation</div>
         <div className="bg-slate-800 rounded p-2 font-mono text-xs text-slate-400">
           {transport.command} {transport.args?.join(' ') || ''}
         </div>
-        <div className="text-slate-400 text-xs">
-          ⚠️ Requires local installation<br/>
-          ⚠️ Command-line setup needed<br/>
-          ✓ Direct process communication
+        <div className="text-slate-400 text-xs space-y-1">
+          <div>⚠️ requires local installation</div>
+          <div>⚠️ Command-line setup needed</div>
+          <div>✓ Direct process communication</div>
         </div>
       </div>
     );
