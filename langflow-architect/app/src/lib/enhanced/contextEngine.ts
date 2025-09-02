@@ -99,20 +99,20 @@ export class ContextEngine {
     const indicators: string[] = [];
     const lowerQuery = query.toLowerCase();
     
-    // Look for industry-specific terms, compliance mentions, technology references
-    const patterns = [
-      /\b(medical|health|patient|clinical|hospital)\b/g,
-      /\b(financial|banking|trading|investment|payment)\b/g,
-      /\b(retail|ecommerce|shop|customer|order)\b/g,
-      /\b(education|student|academic|learning|course)\b/g,
-      /\b(manufacturing|production|supply|inventory)\b/g,
-      /\b(compliance|regulation|audit|security|privacy)\b/g
+    // Look for industry-specific terms and map to domain names
+    const domainMappings = [
+      { pattern: /\b(medical|health|patient|clinical|hospital|healthcare|hipaa)\b/g, domain: 'healthcare' },
+      { pattern: /\b(financial|banking|trading|investment|payment|fintech)\b/g, domain: 'finance' },
+      { pattern: /\b(retail|ecommerce|shop|customer|order|commerce)\b/g, domain: 'retail' },
+      { pattern: /\b(education|student|academic|learning|course|school)\b/g, domain: 'education' },
+      { pattern: /\b(manufacturing|production|supply|inventory|logistics)\b/g, domain: 'manufacturing' },
+      { pattern: /\b(compliance|regulation|audit|security|privacy|gdpr)\b/g, domain: 'compliance' }
     ];
     
-    patterns.forEach(pattern => {
+    domainMappings.forEach(({ pattern, domain }) => {
       const matches = lowerQuery.match(pattern);
-      if (matches) {
-        indicators.push(...matches);
+      if (matches && matches.length > 0) {
+        indicators.push(domain);
       }
     });
     
@@ -223,6 +223,10 @@ export class ContextEngine {
     
     const questions: string[] = [];
     
+    // Generate domain-specific questions based on detected domain
+    const domainQuestions = this.getDomainSpecificQuestions(analysis.domainAnalysis.domain);
+    questions.push(...domainQuestions);
+    
     // Generate domain-agnostic questions that can be enhanced with discovered knowledge
     questions.push(
       'What are the core business requirements for your workflow?',
@@ -242,7 +246,36 @@ export class ContextEngine {
       questions.push(`How will you address ${analysis.technologyStack.compliance.join(' and ')} requirements?`);
     }
 
-    return questions.slice(0, 3);
+    return questions.slice(0, 6);
+  }
+
+  private getDomainSpecificQuestions(domain: string): string[] {
+    const domainQuestions: Record<string, string[]> = {
+      healthcare: [
+        'What healthcare standards and compliance requirements need to be met?',
+        'How will patient data privacy and security be ensured?'
+      ],
+      finance: [
+        'What financial data processing and reporting requirements do you have?',
+        'How will you ensure financial regulatory compliance?',
+        'What are your risk management and audit requirements?'
+      ],
+      retail: [
+        'What e-commerce platforms and customer data need integration?',
+        'How will you handle inventory and order management?'
+      ],
+      education: [
+        'What student data privacy requirements need to be addressed?',
+        'How will you integrate with learning management systems?'
+      ],
+      manufacturing: [
+        'What production systems and supply chain integrations are needed?',
+        'How will you track and optimize manufacturing processes?'
+      ],
+      general: []
+    };
+
+    return domainQuestions[domain] || [];
   }
 
   getContext(conversationId: string): ContextAnalysis | null {

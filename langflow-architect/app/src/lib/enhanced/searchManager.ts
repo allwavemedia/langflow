@@ -116,10 +116,19 @@ export class SearchManager {
       const searchResults = await Promise.allSettled(searchPromises);
       
       const allResults: SearchResult[] = [];
+      const failedProviders: string[] = [];
+      let providersAttempted = 0;
       
-      for (const result of searchResults) {
+      for (let i = 0; i < searchResults.length; i++) {
+        const result = searchResults[i];
+        providersAttempted++;
+        
         if (result.status === 'fulfilled') {
           allResults.push(...result.value);
+        } else {
+          // Track which provider failed
+          const providerName = i === 0 && this.tavilyApiKey ? 'Tavily' : 'DuckDuckGo';
+          failedProviders.push(providerName);
         }
       }
 
@@ -139,13 +148,21 @@ export class SearchManager {
         });
       }
 
+      // Generate attribution - include error information if all providers failed
+      let attribution: string[];
+      if (finalResults.length === 0 && providersAttempted > 0) {
+        attribution = [`Search error: All search providers failed (${failedProviders.length > 0 ? failedProviders.join(', ') : 'unknown providers'})`];
+      } else {
+        attribution = this.generateAttribution(finalResults);
+      }
+
       const responseTime = Date.now() - startTime;
       this.updateMetrics(responseTime);
 
       return {
         results: finalResults,
         sources: [...new Set(finalResults.map(r => r.source))],
-        attribution: this.generateAttribution(finalResults),
+        attribution,
         responseTime,
         cached: false
       };

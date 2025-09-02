@@ -355,8 +355,8 @@ export class LangflowSchemaRegistry {
 
       if (!valid && validator.errors) {
         validator.errors.forEach(error => {
-          const message = `${error.instancePath}: ${error.message}`;
-          if (error.keyword === 'required') {
+          const message = `${error.instancePath || 'root'}: ${error.message}`;
+          if (error.keyword === 'required' || error.keyword === 'type') {
             errors.push(message);
           } else {
             warnings.push(message);
@@ -365,11 +365,20 @@ export class LangflowSchemaRegistry {
       }
 
       // Additional Langflow-specific validations
-      const wf = workflowJson as { data?: { nodes?: unknown[] } };
-      if (wf.data?.nodes) {
-        const nodeValidation = this.validateNodes(wf.data.nodes);
-        errors.push(...nodeValidation.errors);
-        warnings.push(...nodeValidation.warnings);
+      const wf = workflowJson as { data?: { nodes?: unknown[], edges?: unknown } };
+      if (wf.data) {
+        if (!Array.isArray(wf.data.nodes)) {
+          errors.push('data.nodes: must be an array');
+        }
+        if (wf.data.edges !== undefined && !Array.isArray(wf.data.edges)) {
+          errors.push('data.edges: must be an array');
+        }
+        
+        if (wf.data.nodes && Array.isArray(wf.data.nodes)) {
+          const nodeValidation = this.validateNodes(wf.data.nodes);
+          errors.push(...nodeValidation.errors);
+          warnings.push(...nodeValidation.warnings);
+        }
       }
 
       return {
