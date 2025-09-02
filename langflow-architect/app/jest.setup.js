@@ -54,12 +54,15 @@ global.URL.revokeObjectURL = jest.fn()
 const originalCreateElement = document.createElement
 document.createElement = jest.fn((tagName) => {
   if (tagName === 'a') {
-    return {
+    // Create a real DOM element and then enhance it
+    const element = originalCreateElement.call(document, tagName);
+    // Add any additional properties needed for testing
+    Object.assign(element, {
       href: '',
       download: '',
       click: jest.fn(),
-      style: {},
-    }
+    });
+    return element;
   }
   return originalCreateElement.call(document, tagName)
 })

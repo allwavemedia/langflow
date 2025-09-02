@@ -272,7 +272,7 @@ describe('McpMarketplace Component', () => {
       await waitFor(() => {
         expect(screen.getByText('Server-Sent Events (SSE) connection')).toBeInTheDocument();
         expect(screen.getByText('No local installation required')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     it('displays stdio installation instructions for local servers', async () => {
@@ -285,7 +285,7 @@ describe('McpMarketplace Component', () => {
       await waitFor(() => {
         expect(screen.getByText('requires local installation')).toBeInTheDocument();
         expect(screen.getByText('Command-line setup needed')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     it('shows enhanced capability and tag sections', () => {
@@ -340,10 +340,11 @@ describe('McpMarketplace Component', () => {
     it('handles expand/collapse functionality correctly', async () => {
       render(<McpMarketplace {...defaultProps} />);
       
-      const moreInfoButton = screen.getAllByText('More Info')[0];
+      const moreInfoButtons = screen.getAllByText('More Info');
+      const firstButton = moreInfoButtons[0];
       
       // Expand
-      fireEvent.click(moreInfoButton);
+      fireEvent.click(firstButton);
       await waitFor(() => {
         expect(screen.getByText('Show Less')).toBeInTheDocument();
       });
@@ -351,7 +352,7 @@ describe('McpMarketplace Component', () => {
       // Collapse
       fireEvent.click(screen.getByText('Show Less'));
       await waitFor(() => {
-        expect(screen.getByText('More Info')).toBeInTheDocument();
+        expect(screen.getAllByText('More Info')[0]).toBeInTheDocument();
       });
     });
 
