@@ -2,11 +2,14 @@
 
 This module implements the core Socratic questioning capability, taking conversation
 state and generating appropriate follow-up questions to guide users toward clarity.
+Enhanced with Dynamic Domain Discovery for intelligent context-aware questioning.
 """
 
 from typing import Dict, Any, List, Optional
 import re
+import asyncio
 from enum import Enum
+from .domain_discovery import domain_discovery_engine, DomainContext, EnhancedDomainContext
 
 
 class QuestionType(Enum):
@@ -103,6 +106,7 @@ class SocraticEngine:
     def __init__(self):
         """Initialize the Socratic Engine."""
         self.question_history = []
+        self.domain_context_cache = {}  # Cache for domain contexts by session
     
     def generate_initial_question(self, category: str) -> str:
         """
@@ -272,3 +276,204 @@ class SocraticEngine:
     def reset(self) -> None:
         """Reset the question history."""
         self.question_history = []
+    
+    async def generate_dynamic_question(self, user_input: str, session_id: Optional[str] = None, 
+                                      conversation_history: Optional[List[Dict[str, Any]]] = None) -> str:
+        """
+        Generate a dynamic question using domain discovery intelligence.
+        
+        Args:
+            user_input: User's natural language input
+            session_id: Optional session identifier
+            conversation_history: Previous conversation turns
+            
+        Returns:
+            Intelligent question based on detected domain context
+        """
+        try:
+            # Get or create domain context
+            domain_context = await self._get_or_create_domain_context(user_input, session_id)
+            
+            # Generate question based on domain intelligence
+            question = await self._generate_domain_aware_question(
+                domain_context, user_input, conversation_history or []
+            )
+            
+            # Track the question
+            self.question_history.append({
+                "type": QuestionType.CONCEPT_EXPLORATION.value,
+                "domain": domain_context.domain,
+                "confidence": domain_context.confidence,
+                "question": question,
+                "session_id": session_id
+            })
+            
+            return question
+            
+        except Exception as e:
+            # Fallback to traditional question generation
+            parsed_response = self.parse_user_response(user_input)
+            return self.generate_clarifying_question(
+                parsed_response, conversation_history or [], "general"
+            )
+    
+    async def get_domain_insights(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get domain insights for a session.
+        
+        Args:
+            session_id: Session identifier
+            
+        Returns:
+            Domain insights including context, recommendations, and expertise level
+        """
+        try:
+            enhanced_context = domain_discovery_engine.get_active_domain_context(session_id)
+            if not enhanced_context:
+                return None
+            
+            # Generate component recommendations
+            recommendations = await domain_discovery_engine.generate_component_recommendations(enhanced_context)
+            
+            return {
+                "domain": enhanced_context.domain,
+                "confidence": enhanced_context.confidence,
+                "expertise_level": enhanced_context.expertise_level.value,
+                "compliance_frameworks": enhanced_context.compliance_frameworks,
+                "technologies": enhanced_context.knowledge.technologies,
+                "concepts": enhanced_context.knowledge.concepts,
+                "recommendations": [
+                    {
+                        "name": rec.name,
+                        "description": rec.description,
+                        "relevance_score": rec.relevance_score,
+                        "domain_specific": rec.domain_specific
+                    }
+                    for rec in recommendations
+                ],
+                "related_domains": enhanced_context.related_domains
+            }
+            
+        except Exception as e:
+            return {"error": str(e)}
+    
+    async def switch_domain_context(self, new_input: str, session_id: str) -> Dict[str, Any]:
+        """
+        Switch domain context for a session.
+        
+        Args:
+            new_input: New user input indicating domain switch
+            session_id: Session identifier
+            
+        Returns:
+            Result of domain switch with new context information
+        """
+        try:
+            result = await domain_discovery_engine.switch_domain(session_id, new_input)
+            
+            if result.success:
+                # Update cached context
+                self.domain_context_cache[session_id] = result.domain_context
+                
+                return {
+                    "success": True,
+                    "new_domain": result.domain_context.domain,
+                    "confidence": result.domain_context.confidence,
+                    "previous_domain": result.domain_context.metadata.get("previous_domain"),
+                    "recommendations_count": len(result.recommendations)
+                }
+            else:
+                return {"success": False, "error": result.error}
+                
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    # Private helper methods for domain-aware questioning
+    
+    async def _get_or_create_domain_context(self, user_input: str, session_id: Optional[str]) -> EnhancedDomainContext:
+        """Get existing domain context or create new one."""
+        if session_id:
+            # Check cache first
+            cached_context = self.domain_context_cache.get(session_id)
+            if cached_context:
+                return cached_context
+            
+            # Check active contexts
+            active_context = domain_discovery_engine.get_active_domain_context(session_id)
+            if active_context:
+                self.domain_context_cache[session_id] = active_context
+                return active_context
+        
+        # Create new domain context
+        activation_result = await domain_discovery_engine.activate_domain_expertise(
+            user_input, session_id or "temp"
+        )
+        
+        if activation_result.success:
+            enhanced_context = activation_result.domain_context
+            if session_id:
+                self.domain_context_cache[session_id] = enhanced_context
+            return enhanced_context
+        
+        # Fallback to basic context
+        domain_context = await domain_discovery_engine.analyze_user_context(user_input, session_id)
+        enhanced_context = await domain_discovery_engine.enhance_with_context_analysis(domain_context)
+        return enhanced_context
+    
+    async def _generate_domain_aware_question(self, domain_context: EnhancedDomainContext, 
+                                            user_input: str, conversation_history: List[Dict[str, Any]]) -> str:
+        """Generate a question that's aware of the domain context."""
+        
+        # Domain-specific question templates
+        domain_questions = {
+            "healthcare": [
+                "What type of healthcare data will your workflow process?",
+                "Do you need to ensure HIPAA compliance for this workflow?",
+                "Will this involve patient information or clinical data?",
+                "What healthcare systems does this need to integrate with?"
+            ],
+            "finance": [
+                "What type of financial data will be processed?",
+                "Are there specific regulatory requirements to consider?",
+                "Do you need real-time transaction processing?",
+                "What financial systems need to be integrated?"
+            ],
+            "technology": [
+                "What APIs or services do you need to integrate with?",
+                "What's your preferred technology stack?",
+                "Do you need real-time data processing?",
+                "What authentication methods are required?"
+            ],
+            "education": [
+                "What type of educational content will be processed?",
+                "Who are the target learners for this workflow?",
+                "Do you need to track learning progress or outcomes?",
+                "What educational systems need integration?"
+            ]
+        }
+        
+        # Get domain-specific questions
+        questions = domain_questions.get(domain_context.domain, [])
+        
+        # If we have domain-specific questions, use them
+        if questions:
+            # Select based on conversation history to avoid repetition
+            question = self._select_non_repetitive_question(questions, conversation_history)
+            return question
+        
+        # Fallback to technology or concept-based questions
+        if domain_context.knowledge.technologies:
+            tech = domain_context.knowledge.technologies[0]
+            return f"I see you're working with {tech}. What specific capabilities do you need from this technology?"
+        
+        if domain_context.knowledge.concepts:
+            concept = domain_context.knowledge.concepts[0]
+            return f"You mentioned {concept}. Can you tell me more about how this fits into your workflow?"
+        
+        # Expertise-level adapted questions
+        if domain_context.expertise_level.value == "beginner":
+            return "What would you like this workflow to accomplish at a high level?"
+        elif domain_context.expertise_level.value == "advanced":
+            return "What are the key architectural considerations for this implementation?"
+        else:
+            return "What are the main components you think you'll need for this workflow?"
